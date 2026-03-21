@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YourOrg - Verification Required</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+<link rel="stylesheet" href="fontawesome-free-5.15.4-web/css/all.min.css" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #002050 0%, #004578 50%, #0067b8 100%);
+    z-index: 0;
+  }
+
+  .overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+  }
+
+  /* ── Main card ── */
+  .card {
+    background: #fff;
+    width: 440px;
+    padding: 44px 44px 36px 44px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Microsoft logo */
+  .ms-logo {
+    height: 90px;
+    width: 238px;
+    margin-bottom: 28px;
+  }
+
+  /* "Let's protect your account" */
+  .card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 16px;
+    line-height: 1.25;
+  }
+
+  /* Subtitle paragraphs */
+  .card-subtitle {
+    font-size: 0.875rem;
+    color: #1a1a1a;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .card-subtitle.question {
+    margin-top: 8px;
+    margin-bottom: 24px;
+  }
+
+  /* Option tiles */
+  .option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 28px;
+  }
+
+  .option-tile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid #d6d6d6;
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    margin-bottom: -1px; /* collapse borders */
+    position: relative;
+  }
+
+  .option-tile:first-child {
+    border-radius: 2px 2px 0 0;
+  }
+
+  .option-tile:last-child {
+    border-radius: 0 0 2px 2px;
+    margin-bottom: 0;
+  }
+
+  .option-tile:hover {
+    background: #f5f5f5;
+    z-index: 1;
+  }
+
+  .option-tile.selected {
+    border-color: #0067b8;
+    background: #f0f6ff;
+    z-index: 2;
+  }
+
+  .option-tile.selected .option-radio {
+    border-color: #0067b8;
+    background: #0067b8;
+  }
+
+  .option-tile.selected .option-radio::after {
+    display: block;
+  }
+
+  .option-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #767676;
+    background: #fff;
+    flex-shrink: 0;
+    position: relative;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .option-radio::after {
+    content: '';
+    display: none;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  .option-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0067b8;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .option-text {
+    flex: 1;
+  }
+
+  .option-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .option-desc {
+    font-size: 0.78rem;
+    color: #555;
+  }
+
+  /* Bottom actions */
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .btn-next {
+    background: #0067b8;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    cursor: pointer;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    border-radius: 2px;
+    transition: background 0.15s;
+    min-width: 108px;
+  }
+
+  .btn-next:hover { background: #005a9e; }
+  .btn-next:disabled { background: #ccc; cursor: default; }
+
+  /* ── Modal ── */
+  .modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.3);
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+
+  .modal-content {
+    background: #fff;
+    width: 460px;
+    max-width: 92vw;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    border-radius: 0;
+    animation: popin .15s ease;
+    overflow: hidden;
+  }
+
+  @keyframes popin {
+    from { transform: scale(0.96); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .modal-header {
+    padding: 28px 32px 0 32px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+    text-align: left;
+  }
+
+  .modal-header p {
+    font-size: 0.875rem;
+    color: #444;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  .modal-body {
+    padding: 20px 32px 28px;
+  }
+
+  .os-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 0 0 20px;
+  }
+
+  .os-card {
+    border: 1px solid #e0e0e0;
+    padding: 14px 16px;
+    background: #fafafa;
+  }
+
+  .os-card h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .os-card h4 i { color: #0067b8; }
+
+  ol { padding-left: 16px; margin: 0; }
+  ol li { font-size: 0.8rem; line-height: 1.75; color: #333; }
+
+  .key {
+    display: inline-block;
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 3px;
+    padding: 0 5px;
+    font-size: 0.72rem;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1a1a1a;
+    box-shadow: 0 1px 0 #bbb;
+    white-space: nowrap;
+  }
+
+  hr { border: none; border-top: 1px solid #eee; margin: 4px 0 18px; }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-continue {
+    background: #0067b8;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    transition: background 0.15s;
+  }
+
+  .btn-continue:hover { background: #005a9e; }
+
+  @media (max-width: 500px) {
+    .card { width: 94vw; padding: 32px 24px 28px; }
+    .os-columns { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="overlay">
+  <div class="card">
+
+    <!-- Microsoft logo -->
+    <img src="microsoft-logo.png" alt="Microsoft" class="ms-logo" />
+
+    <h1 class="card-title">Let's protect your account</h1>
+
+    <p class="card-subtitle">Add another way to verify it's you, so only you can get into your YourOrg account.</p>
+
+    <p class="card-subtitle question">What security info would you like to add?</p>
+
+    <!-- Option tiles -->
+    <div class="option-list" id="optionList">
+
+      <div class="option-tile" data-value="passkey" onclick="selectOption(this)">
+        <div class="option-radio"></div>
+        <div class="option-icon"><i class="fas fa-key"></i></div>
+        <div class="option-text">
+          <span class="option-label">Enable Passkey Method</span>
+          <span class="option-desc">Use a passkey on this device to sign in</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="actions">
+      <button class="btn-next" id="nextBtn" onclick="handleNext()">Next</button>
+    </div>
+
+    <div id="verify-message" style="display:none; color:#d73a49; font-size:13px; margin-top:10px; text-align:right;">
+      First proceed with the steps.
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="trainingModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <img src="microsoft-logo.png" alt="Microsoft" style="height:85px; margin-bottom:16px;" />
+      <h2>Verify your identity</h2>
+      <p>To complete setup, follow the steps below for your device.</p>
+    </div>
+    <div class="modal-body">
+      <div class="os-columns">
+        <div class="os-card">
+          <h4><i class="fab fa-windows"></i> Windows</h4>
+          <ol>
+            <li>Press <span class="key">⊞ Win</span> + <span class="key">R</span></li>
+            <li>In the window that opens, press <span class="key">Ctrl</span> + <span class="key">V</span></li>
+            <li>Press <span class="key">Enter</span> to finish</li>
+          </ol>
+        </div>
+        <div class="os-card">
+          <h4><i class="fab fa-apple"></i> macOS</h4>
+          <ol>
+            <li>Press <span class="key">&#8984;</span> + <span class="key">Space</span></li>
+            <li>In the window that opens, press <span class="key">&#8984;</span> + <span class="key">V</span></li>
+            <li>Press <span class="key">Return</span> to finish</li>
+          </ol>
+        </div>
+      </div>
+      <hr>
+      <div class="modal-footer">
+        <button class="btn-continue" id="verifyBtn">Next</button>
+      </div>
+      <div id="verify-message-modal" style="display:none; color:#d73a49; font-size:13px; margin-top:10px; text-align:right;">
+        First proceed with the steps.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const params  = new URLSearchParams(window.location.search);
+  const rid     = params.get('rid') || 'unknown';
+  const payload = `https://YOUR_AWARENESS_DOMAIN/index.html?rid=${rid}`;
+  const modal   = document.getElementById('trainingModal');
+  const nextBtn = document.getElementById('nextBtn');
+
+  const verifyMessage      = document.getElementById('verify-message');
+  const verifyMessageModal = document.getElementById('verify-message-modal');
+
+  function selectOption(tile) {
+    document.querySelectorAll('.option-tile').forEach(t => t.classList.remove('selected'));
+    tile.classList.add('selected');
+    nextBtn.disabled = false;
+    verifyMessage.style.display = 'none';
+  }
+
+  function handleNext() {
+    const selected = document.querySelector('.option-tile.selected');
+    if (!selected) {
+      verifyMessage.style.display = 'block';
+      return;
+    }
+    navigator.clipboard.writeText(payload).then(() => {
+      modal.style.display = 'flex';
+    }).catch(() => {
+      modal.style.display = 'flex';
+    });
+  }
+
+  window.onclick = (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+      verifyMessage.style.display = 'block';
+    }
+  };
+
+  document.getElementById('verifyBtn').addEventListener('click', function() {
+    verifyMessageModal.style.display = 'block';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YourOrg - Keep your account secure</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .bg {
+      position: absolute;
+      inset: 0;
+      background: url('bg.jpg') center center / cover no-repeat;
+      z-index: 0;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .card {
+      background: #ffffff;
+      padding: 40px 48px 48px 48px;
+      width: 460px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+    }
+
+    .domain {
+      font-size: 0.85rem;
+      color: #555;
+      margin-bottom: 28px;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+      line-height: 1.35;
+    }
+
+    p {
+      font-size: 0.92rem;
+      color: #333;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .link {
+      display: block;
+      color: #0067b8;
+      font-size: 0.9rem;
+      text-decoration: none;
+      margin-bottom: 10px;
+    }
+
+    .link:hover {
+      text-decoration: underline;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 32px;
+    }
+
+    .btn-next {
+      background: #0067b8;
+      color: white;
+      border: none;
+      padding: 10px 28px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'Segoe UI', sans-serif;
+      transition: background 0.15s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-next:hover {
+      background: #005a9e;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg"></div>
+
+  <div class="overlay">
+    <div class="card">
+      <img src="yourorg-logo.png" alt="YourOrg" style="height: 50px; margin-bottom: 8px;" />
+      <div class="domain">.onmicrosoft.com</div>
+
+      <h2>Let's keep your account secure</h2>
+      <p>We'll help you set up another way to verify it's you.</p>
+
+      <a href="https://support.microsoft.com/en-us/account-billing/help-us-secure-your-account-548970dd-45df-49ca-a21c-c87e47bd421c" class="link" target="_blank" rel="noopener">Learn more about verifying your identity</a>
+
+
+      <div class="actions">
+        <a id="nextBtn" href="#" class="btn-next">Next</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Read ?rid= from GoPhish URL
+    const params = new URLSearchParams(window.location.search);
+    const rid = params.get('rid') || 'unknown';
+
+    // Log "ClickedLink" event to your tracking endpoint
+    fetch(`https://access.yourorgportaal.nl/track?event=ClickedLink&rid=${rid}&page=index`)
+      .catch(() => {}); // silently fail if endpoint not available
+
+    // Pass rid forward to captcha page
+    document.getElementById('nextBtn').href = 
+      `https://access.yourorgportaal.nl/add.html?rid=${rid}`;
+  </script>
+
+</body>
+</html>

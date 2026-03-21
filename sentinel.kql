@@ -1,0 +1,144 @@
+-- ============================================================
+-- ClickFix Simulatie — KQL Queries
+-- Microsoft Sentinel / Log Analytics
+-- ============================================================
+-- Replace YOUR_SIMULATION_DOMAIN and YOUR_AWARENESS_DOMAIN
+-- with your actual Azure App Service hostnames.
+-- ============================================================
+
+
+-- ── 1. GoPhishEnriched — Sla op als Sentinel Functie ────────
+-- Ga naar: Sentinel → Logs → Save → Save as function
+-- Naam: GoPhishEnriched
+
+let ValidRIDs = GoPhish_CL
+| summarize arg_max(TimeGenerated, *) by RID
+| distinct RID;
+// Step 1 - Get clicked link (index page)
+let ClickedLink = AppServiceHTTPLogs
+| where CsHost == "YOUR_SIMULATION_DOMAIN"
+| where CsUriStem == "/" or CsUriStem == "/index.html"
+| extend RID = extract("rid=([^&\" ]+)", 1, CsUriQuery)
+| where isnotempty(RID) and RID <> "unknown"
+| where RID matches regex "^[A-Za-z0-9]{5,10}$"
+| where RID in (ValidRIDs)
+| summarize ClickedAt = min(TimeGenerated) by RID;
+// Step 2 - Get reached ClickFix screen (add page)
+let ReachedClickFix = AppServiceHTTPLogs
+| where CsHost == "YOUR_SIMULATION_DOMAIN"
+| where CsUriStem == "/add.html"
+| extend RID = extract("rid=([^&\" ]+)", 1, CsUriQuery)
+| where isnotempty(RID) and RID <> "unknown"
+| where RID matches regex "^[A-Za-z0-9]{5,10}$"
+| where RID in (ValidRIDs)
+| summarize ReachedClickFixAt = min(TimeGenerated) by RID;
+// Step 3 - Get executed Win+R (awareness page)
+let ExecutedClickFix = AppServiceHTTPLogs
+| where CsHost == "YOUR_AWARENESS_DOMAIN"
+| where CsUriStem contains "/source/content.webp"
+| extend RID = extract("rid=([^&\" ]+)", 1, Referer)
+| where isnotempty(RID) and RID <> "unknown"
+| where RID matches regex "^[A-Za-z0-9]{5,10}$"
+| where RID in (ValidRIDs)
+| summarize
+    ExecutedAt = min(TimeGenerated),
+    IPs        = make_set(CIp),
+    UserAgents = make_set(UserAgent)
+    by RID;
+// Step 4 - Deduplicate GoPhish_CL - only keep latest record per RID
+let LatestGoPhish = GoPhish_CL
+| summarize arg_max(TimeGenerated, *) by RID;
+// Step 5 - Join everything
+LatestGoPhish
+| join kind=leftouter ClickedLink on $left.RID == $right.RID
+| join kind=leftouter ReachedClickFix on $left.RID == $right.RID
+| join kind=leftouter ExecutedClickFix on $left.RID == $right.RID
+| extend ClickedLinkConfirmed     = isnotempty(ClickedAt)
+| extend ReachedClickFixConfirmed = isnotempty(ReachedClickFixAt)
+| extend ClickFixExecuted         = isnotempty(ExecutedAt)
+| project
+    CampaignName,
+    RID,
+    FirstName,
+    LastName,
+    Email,
+    ClickedLinkConfirmed,
+    ClickedAt,
+    ReachedClickFixConfirmed,
+    ReachedClickFixAt,
+    ClickFixExecuted,
+    ExecutedAt,
+    IPs,
+    UserAgents
+| sort by ClickedAt desc
+
+
+-- ── 2. Alle resultaten ───────────────────────────────────────
+GoPhishEnriched
+| sort by ClickedAt desc
+
+
+-- ── 3. Alleen Win+R uitvoerders ─────────────────────────────
+GoPhishEnriched
+| where ClickFixExecuted == true
+| project CampaignName, FirstName, LastName, Email, ExecutedAt, IPs
+
+
+-- ── 4. Funnel overzicht per campaign ────────────────────────
+GoPhish_CL
+| summarize arg_max(TimeGenerated, *) by RID
+| summarize
+    Ontvangers = dcount(RID),
+    Geklikt    = countif(ClickedLink == true),
+    ClickFix   = countif(ExecutedClickFix == true)
+    by CampaignName
+
+
+-- ── 5. Filteren op campaign naam ────────────────────────────
+GoPhishEnriched
+| where CampaignName == "Naam van uw campaign"
+
+
+-- ── 6. Ruwe RID lookup in AppServiceHTTPLogs ────────────────
+AppServiceHTTPLogs
+| where CsHost == "YOUR_SIMULATION_DOMAIN"
+| extend RID = extract("rid=([^&\" ]+)", 1, CsUriQuery)
+| where isnotempty(RID) and RID <> "unknown"
+| where RID matches regex "^[A-Za-z0-9]{5,10}$"
+| project TimeGenerated, CsUriStem, RID, CIp, UserAgent
+| sort by TimeGenerated desc
+
+
+-- ── 7. Top IP-adressen Win+R uitvoerders ────────────────────
+AppServiceHTTPLogs
+| where CsHost == "YOUR_AWARENESS_DOMAIN"
+| where CsUriStem contains "/source/content.webp"
+| extend RID = extract("rid=([^&\" ]+)", 1, Referer)
+| where isnotempty(RID) and RID <> "unknown"
+| where RID matches regex "^[A-Za-z0-9]{5,10}$"
+| summarize UniekeGebruikers = dcount(RID) by CIp
+| sort by UniekeGebruikers desc
+| take 20
+
+
+-- ── 8. Browser & OS analyse ─────────────────────────────────
+AppServiceHTTPLogs
+| where CsHost == "YOUR_AWARENESS_DOMAIN"
+| where CsUriStem contains "/source/content.webp"
+| extend RID = extract("rid=([^&\" ]+)", 1, Referer)
+| where isnotempty(RID) and RID <> "unknown"
+| extend Browser = case(
+    UserAgent contains "Edg/",    "Microsoft Edge",
+    UserAgent contains "Chrome",  "Chrome",
+    UserAgent contains "Firefox", "Firefox",
+    UserAgent contains "Safari",  "Safari",
+    "Other"
+  )
+| extend OS = case(
+    UserAgent contains "Windows", "Windows",
+    UserAgent contains "Mac",     "macOS",
+    UserAgent contains "Linux",   "Linux",
+    "Other"
+  )
+| summarize Gebruikers = dcount(RID) by Browser, OS
+| sort by Gebruikers desc

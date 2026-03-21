@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoe zelf een ClickFix simulatie te bouwen — Van neppe Microsoft pagina tot Sentinel dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --s-verzonden: #6E77C4;
+    --s-geklikt:   #E3468A;
+    --s-clickfix:  #00B294;
+    --s-winr:      #9B8EC4;
+    --navy:        #002050;
+    --darkbg:      #001433;
+    --offwhite:    #F5F7FA;
+    --lgray:       #E2E8F0;
+    --gray:        #64748B;
+    --white:       #FFFFFF;
+    --text:        #1E293B;
+    --text-light:  #475569;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--darkbg);
+    color: var(--white);
+    line-height: 1.7;
+    font-size: 17px;
+  }
+
+
+  /* ── Language toggle ── */
+  .lang-toggle {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 200;
+    display: flex;
+    background: rgba(0,20,51,0.95);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 100px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .lang-btn {
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .lang-btn.active {
+    background: var(--s-verzonden);
+    color: white;
+    border-radius: 100px;
+  }
+
+  .lang-btn:hover:not(.active) { color: #94a3b8; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    background: var(--darkbg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 80px 10vw;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(110,119,196,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(0,178,148,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    background: rgba(110,119,196,0.2);
+    border: 1px solid rgba(110,119,196,0.4);
+    color: var(--s-verzonden);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    line-height: 1.1;
+    max-width: 800px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s ease 0.1s both;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--s-geklikt);
+  }
+
+  .hero-sub {
+    font-size: 1.15rem;
+    color: #E2E8F0;
+    max-width: 600px;
+    margin-bottom: 40px;
+    font-weight: 300;
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 32px;
+    font-size: 13px;
+    color: #64748B;
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
+
+  .hero-meta span { display: flex; align-items: center; gap: 8px; }
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #475569;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    animation: fadeUp 0.6s ease 0.5s both;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(to bottom, #475569, transparent);
+    animation: scrollDown 1.5s ease infinite;
+  }
+
+  @keyframes scrollDown {
+    0% { transform: scaleY(0); transform-origin: top; }
+    50% { transform: scaleY(1); transform-origin: top; }
+    51% { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── NAVIGATION ── */
+  nav {
+    position: sticky;
+    top: 0;
+    background: rgba(0,20,51,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    z-index: 100;
+    padding: 0 10vw;
+  }
+
+  nav ul {
+    display: flex;
+    list-style: none;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  nav ul::-webkit-scrollbar { display: none; }
+
+  nav a {
+    display: block;
+    padding: 18px 20px;
+    color: #64748B;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    transition: color 0.2s;
+    border-bottom: 2px solid transparent;
+  }
+
+  nav a:hover { color: var(--white); border-bottom-color: var(--s-verzonden); }
+
+  /* ── MAIN CONTENT ── */
+  main {
+    background: var(--white);
+    color: var(--text);
+  }
+
+  .section {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+
+  .section-full {
+    padding: 80px 10vw;
+  }
+
+  .section-dark {
+    background: var(--darkbg);
+    color: var(--white);
+  }
+
+  .section-accent {
+    background: var(--offwhite);
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .section-label .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    line-height: 1.2;
+    margin-bottom: 20px;
+    color: var(--navy);
+  }
+
+  .section-dark h2 { color: var(--white); }
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 40px 0 12px;
+    color: var(--navy);
+  }
+
+  .section-dark h3 { color: var(--s-clickfix); }
+
+  p { margin-bottom: 20px; color: var(--text-light); }
+  .section-dark p { color: #E2E8F0; }
+  .section-dark p span,
+  .section-dark li span,
+  .section-dark h3 span { color: inherit; }
+
+  /* ── LEAD TEXT ── */
+  .lead {
+    font-size: 1.2rem;
+    font-weight: 300;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 32px;
+    border-left: 3px solid var(--s-verzonden);
+    padding-left: 20px;
+  }
+
+  /* ── CODE BLOCKS ── */
+  pre {
+    background: #0D1117;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 24px;
+    overflow-x: auto;
+    margin: 24px 0;
+    position: relative;
+    color: #E2E8F0;
+  }
+
+  pre code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #E2E8F0;
+  }
+
+  .code-label {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .kw { color: #F97583; }   /* keywords */
+  .fn { color: #B392F0; }   /* functions */
+  .st { color: #9ECBFF; }   /* strings */
+  .cm { color: #8B949E; font-style: italic; } /* comments - lighter */
+  .nm { color: #79B8FF; }   /* numbers/names */
+  .op { color: #E3468A; }   /* operators/special */
+  .gr { color: #00B294; }   /* green - success */
+
+  /* ── INLINE CODE ── */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: rgba(110,119,196,0.12);
+    color: var(--s-verzonden);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  pre code { background: none; color: inherit; padding: 0; }
+
+  /* ── FUNNEL DIAGRAM ── */
+  .funnel {
+    margin: 48px 0;
+  }
+
+  .funnel-step {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    transition: transform 0.2s;
+    position: relative;
+  }
+
+  .funnel-step:hover { transform: translateX(4px); }
+
+  .funnel-num {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--white);
+    flex-shrink: 0;
+  }
+
+  .funnel-text h4 { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .funnel-text p { font-size: 13px; margin: 0; }
+
+  .funnel-arrow {
+    text-align: center;
+    color: #E2E8F0;
+    font-size: 20px;
+    margin: 4px 0;
+    padding-left: 44px;
+  }
+
+  /* ── STAT CARDS ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 40px 0;
+  }
+
+  .stat-card {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 28px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border-top: 4px solid;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .stat-label { font-size: 13px; color: var(--gray); font-weight: 500; }
+  .stat-pct { font-size: 14px; font-weight: 600; margin-top: 4px; }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 28px 0;
+    border-left: 4px solid;
+  }
+
+  .info-box.warning {
+    background: rgba(227,70,138,0.08);
+    border-color: var(--s-geklikt);
+  }
+
+  .info-box.info {
+    background: rgba(110,119,196,0.08);
+    border-color: var(--s-verzonden);
+  }
+
+  .info-box.success {
+    background: rgba(0,178,148,0.08);
+    border-color: var(--s-clickfix);
+  }
+
+  .info-box.note {
+    background: rgba(155,142,196,0.08);
+    border-color: var(--s-winr);
+  }
+
+  .info-box-title {
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .info-box p { margin: 0; font-size: 14px; }
+
+  /* ── ARCHITECTURE ── */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 40px 0;
+  }
+
+  .arch-card {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  .arch-header {
+    padding: 16px 20px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--white);
+  }
+
+  .arch-body {
+    background: var(--white);
+    padding: 16px 20px;
+  }
+
+  .arch-body .url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+
+  .arch-body ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .arch-body li {
+    font-size: 13px;
+    color: var(--text-light);
+    padding: 3px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+
+  .arch-body li::before {
+    content: '→';
+    font-size: 10px;
+    color: #E2E8F0;
+  }
+
+  /* ── TRACKING TABLE ── */
+  .tracking-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 28px 0;
+    font-size: 14px;
+  }
+
+  .tracking-table th {
+    background: var(--navy);
+    color: var(--white);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .tracking-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--lgray);
+    color: var(--text-light);
+    vertical-align: top;
+  }
+
+  .tracking-table tr:nth-child(even) td { background: var(--offwhite); }
+  .tracking-table tr:hover td { background: rgba(110,119,196,0.05); }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  /* ── KQL QUERY BLOCKS ── */
+  .kql-block {
+    margin: 32px 0;
+  }
+
+  .kql-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .kql-title h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+  }
+
+  .kql-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: rgba(0,178,148,0.12);
+    color: var(--s-clickfix);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── TIMELINE ── */
+  .timeline {
+    position: relative;
+    margin: 40px 0;
+    padding-left: 32px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--s-verzonden), var(--s-geklikt), var(--s-clickfix), var(--s-winr));
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 36px;
+  }
+
+  .timeline-dot {
+    position: absolute;
+    left: -38px;
+    top: 4px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--white);
+  }
+
+  .timeline-item h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--white);
+  }
+
+  .timeline-item p {
+    font-size: 14px;
+    color: #E2E8F0;
+    margin: 0;
+  }
+
+  /* ── QUOTE ── */
+  blockquote {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--navy);
+    border-left: 4px solid var(--s-geklikt);
+    padding: 16px 28px;
+    margin: 40px 0;
+    background: rgba(227,70,138,0.04);
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ── CONCLUSION CARDS ── */
+  .conclusion-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin: 40px 0;
+  }
+
+  @media (max-width: 640px) {
+    .conclusion-grid { grid-template-columns: 1fr; }
+    .arch-grid { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .hero { padding: 60px 6vw; }
+    nav { padding: 0 6vw; }
+    .section-full { padding: 60px 6vw; }
+  }
+
+  .conclusion-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 28px;
+  }
+
+  .conclusion-card h4 {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .conclusion-card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .conclusion-card li {
+    font-size: 13px;
+    color: #475569;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+
+  .conclusion-card li:last-child { border-bottom: none; }
+  .conclusion-card li span { flex-shrink: 0; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #000D1A;
+    padding: 60px 10vw;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+  }
+
+  footer p { color: #334155; font-size: 13px; margin: 0; }
+  footer a { color: var(--s-verzonden); text-decoration: none; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--darkbg); }
+  ::-webkit-scrollbar-thumb { background: rgba(110,119,196,0.4); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="lang-toggle">
+  <button class="lang-btn active" onclick="setLang('nl')" id="btn-nl">NL</button>
+  <button class="lang-btn" onclick="setLang('en')" id="btn-en">EN</button>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <span class="hero-tag"><span data-nl="Security Awareness" data-en="Security Awareness">Security Awareness · Hands-on Guide</span></span>
+  <h1><span data-nl="Hoe zelf een ClickFix simulatie te bouwen" data-en="How to build your own ClickFix simulation">Hoe zelf een ClickFix simulatie te bouwen</span></h1>
+  <p class="hero-sub"><span data-nl="Ik bouwde dit zelf omdat er geen tool voor bestaat — van neppe Microsoft MFA pagina tot live Sentinel dashboard. Alles wat ik gebruikte is open source en gratis beschikbaar." data-en="From fake Microsoft MFA page to live Sentinel dashboard — a step-by-step guide to building your own ClickFix phishing simulation using GoPhish, Azure and KQL.">Ik bouwde dit zelf omdat er geen tool voor bestaat — van neppe Microsoft MFA pagina tot live Sentinel dashboard. Alles wat ik gebruikte is open source en gratis beschikbaar.</span></p>
+  <div class="hero-meta">
+    <span>✍️ Jeroen van der Broek</span>
+    <span><span data-nl="📅 Maart 2026" data-en="📅 March 2026">📅 Maart 2026</span></span>
+    <span><span data-nl="🛡️ Security Awareness" data-en="🛡️ Security Awareness">🛡️ Security Awareness</span></span>
+    <span><span data-nl="⏱ 15 min leestijd" data-en="⏱ 15 min read">⏱ 15 min leestijd</span></span>
+  </div>
+  <div class="hero-scroll"><div class="scroll-line"></div><span data-nl="scroll" data-en="scroll">scroll</span></div>
+</section>
+
+<!-- NAVIGATION -->
+<nav>
+  <ul>
+    <li><a href="#wat-is-clickfix"><span data-nl="Wat is ClickFix?" data-en="What is ClickFix?">Wat is ClickFix?</span></a></li>
+    <li><a href="#simulatie"><span data-nl="De simulatie" data-en="The simulation">De simulatie</span></a></li>
+    <li><a href="#technisch">Technische opzet</a></li>
+    <li><a href="#webpaginas"><span data-nl="Webpagina's" data-en="Web pages">Webpagina's</span></a></li>
+    <li><a href="#gophish">GoPhish</a></li>
+    <li><a href="#sentinel">Sentinel</a></li>
+    <li><a href="#dashboard">Dashboard</a></li>
+    <li><a href="#resultaten"><span data-nl="Resultaten" data-en="Results">Resultaten</span></a></li>
+    <li><a href="#conclusie"><span data-nl="Conclusie" data-en="Conclusion">Conclusie</span></a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- WAT IS CLICKFIX -->
+<div id="wat-is-clickfix">
+  <div class="section">
+    <div class="section-label" style="color: var(--s-verzonden);"><div class="dot" style="background: var(--s-verzonden);"></div><span data-nl="Achtergrond" data-en="Background">Achtergrond</span></div>
+    <h2><span data-nl="Wat is een ClickFix aanval?" data-en="What is a ClickFix attack?">Wat is een ClickFix aanval?</span></h2>
+    <p class="lead">ClickFix — ook bekend als FakeCaptcha — is een van de gevaarlijkste social engineering technieken van dit moment. Niet omdat het technisch geavanceerd is, maar juist omdat het zo simpel werkt.</p>
+
+    <p><span data-nl="Bij een ClickFix aanval maakt een aanvaller een neppe verificatiepagina die er volledig legitiem uitziet — denk aan een Microsoft MFA setup scherm, een Cloudflare CAPTCHA, of een browser verificatieprompt. De pagina vraagt de gebruiker om een &quot;verificatiestap&quot; uit te voeren." data-en="In a ClickFix attack, an attacker creates a fake verification page that looks completely legitimate — think a Microsoft MFA setup screen, a Cloudflare CAPTCHA, or a browser verification prompt. The page asks the user to perform a &quot;verification step&quot;.">Bij een ClickFix aanval maakt een aanvaller een neppe verificatiepagina die er volledig legitiem uitziet — denk aan een Microsoft MFA setup scherm, een Cloudflare CAPTCHA, of een browser verificatieprompt. De pagina vraagt de gebruiker om een "verificatiestap" uit te voeren.</span></p>
+
+    <p><span data-nl="Wat de gebruiker niet weet: op het moment dat ze op de knop klikken, kopieert de pagina stilletjes een kwaadaardig commando naar hun clipboard. De &quot;verificatiestap&quot; instrueert hen vervolgens om <code>Win+R</code> te drukken (de Windows Run-dialog), het clipboard te plakken met <code>Ctrl+V</code> en <code>Enter</code> te drukken." data-en="What the user does not know: the moment they click the button, the page silently copies a malicious command to their clipboard. The &quot;verification step&quot; then instructs them to press <code>Win+R</code> (the Windows Run dialog), paste the clipboard with <code>Ctrl+V</code> and press <code>Enter</code>.">Wat de gebruiker niet weet: op het moment dat ze op de knop klikken, kopieert de pagina stilletjes een kwaadaardig commando naar hun clipboard. De "verificatiestap" instrueert hen vervolgens om <code>Win+R</code> te drukken (de Windows Run-dialog), het clipboard te plakken met <code>Ctrl+V</code> en <code>Enter</code> te drukken.</span></p>
+
+    <div class="info-box warning">
+      <div class="info-box-title" style="color: var(--s-geklikt);"><span data-nl="⚠️ Waarom dit zo gevaarlijk is" data-en="⚠️ Why this is so dangerous">⚠️ Waarom dit zo gevaarlijk is</span></div>
+      <p><span data-nl="De gebruiker voert zelf de aanval uit. Er is geen exploit, geen malware download, geen verdachte bijlage. De browser ziet niets fout. Antivirussoftware slaat geen alarm. De aanvaller hoeft alleen maar te wachten." data-en="The user executes the attack themselves. There is no exploit, no malware download, no suspicious attachment. The browser sees nothing wrong. Antivirus software raises no alarm. The attacker just has to wait.">De gebruiker voert zelf de aanval uit. Er is geen exploit, geen malware download, geen verdachte bijlage. De browser ziet niets fout. Antivirussoftware slaat geen alarm. De aanvaller hoeft alleen maar te wachten.</span></p>
+    </div>
+
+    <p><span data-nl="Deze techniek wordt al actief gebruikt door cybercriminelen wereldwijd — onder andere bij aanvallen op de zorgsector, financiële instellingen en overheden. Juist daarom besloot ik bij jouw organisatie om onze medewerkers hiertegen te trainen — niet met een e-learning, maar met een échte simulatie." data-en="This technique is already actively used by cybercriminals worldwide — including in attacks on the healthcare sector, financial institutions and governments. This is exactly the kind of attack you need to train yemployees against — not with an e-learning, but with a real simulation.">Deze techniek wordt al actief gebruikt door cybercriminelen wereldwijd — onder andere bij aanvallen op de zorgsector, financiële instellingen en overheden. Juist daarom besloot ik bij jouw organisatie om onze medewerkers hiertegen te trainen — niet met een e-learning, maar met een échte simulatie.</span></p>
+
+    <div class="funnel" style="background: var(--offwhite); border-radius: 12px; padding: 32px;">
+      <h3 style="margin-top: 0; color: var(--navy);"><span data-nl="De aanvalsketen" data-en="The attack chain">De aanvalsketen</span></h3>
+      <div class="funnel-step" style="background: rgba(110,119,196,0.1);">
+        <div class="funnel-num" style="background: var(--s-verzonden);">1</div>
+        <div class="funnel-text">
+          <h4 style="color: var(--navy);"><span data-nl="Phishing e-mail" data-en="Phishing email">Phishing e-mail</span></h4>
+          <p><span data-nl="Gebruiker ontvangt een overtuigende mail met een link" data-en="User receives a convincing email with a link">Gebruiker ontvangt een overtuigende mail met een link</span></p>
+        </div>
+      </div>
+      <div class="funnel-arrow">↓</div>
+      <div class="funnel-step" style="background: rgba(227,70,138,0.08);">
+        <div class="funnel-num" style="background: var(--s-geklikt);">2</div>
+        <div class="funnel-text">
+          <h4 style="color: var(--navy);"><span data-nl="Neppe verificatiepagina" data-en="Fake verification page">Neppe verificatiepagina</span></h4>
+          <p><span data-nl="Ziet eruit als een legitieme Microsoft beveiligingsprompt" data-en="Looks like a legitimate Microsoft security prompt">Ziet eruit als een legitieme Microsoft beveiligingsprompt</span></p>
+        </div>
+      </div>
+      <div class="funnel-arrow">↓</div>
+      <div class="funnel-step" style="background: rgba(0,178,148,0.08);">
+        <div class="funnel-num" style="background: var(--s-clickfix);">3</div>
+        <div class="funnel-text">
+          <h4 style="color: var(--navy);"><span data-nl="Clipboard hijack" data-en="Clipboard hijack">Clipboard hijack</span></h4>
+          <p><span data-nl="Kwaadaardig commando wordt stil naar clipboard gekopieerd" data-en="Malicious command is silently copied to clipboard">Kwaadaardig commando wordt stil naar clipboard gekopieerd</span></p>
+        </div>
+      </div>
+      <div class="funnel-arrow">↓</div>
+      <div class="funnel-step" style="background: rgba(155,142,196,0.08);">
+        <div class="funnel-num" style="background: var(--s-winr);">4</div>
+        <div class="funnel-text">
+          <h4 style="color: var(--navy);">Win+R → Ctrl+V → Enter</h4>
+          <p><span data-nl="Gebruiker voert het commando zelf uit — aanvaller is binnen" data-en="User executes the command themselves — attacker is in">Gebruiker voert het commando zelf uit — aanvaller is binnen</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DE SIMULATIE -->
+<div id="simulatie" style="background: var(--darkbg);">
+  <div class="section section-dark">
+    <div class="section-label" style="color: var(--s-geklikt);"><div class="dot" style="background: var(--s-geklikt);"></div><span data-nl="Onze aanpak" data-en="Our approach">Onze aanpak</span></div>
+    <h2 style="color: var(--white);"><span data-nl="De simulatie — veilig maar realistisch" data-en="The simulation — safe but realistic">De simulatie — veilig maar realistisch</span></h2>
+    <p><span data-nl="In deze gids laat ik zien hoe ik een volledig werkende ClickFix simulatie bouwde die er van buitenaf ononderscheidbaar is van een echte aanval — met één cruciaal verschil: de payload is volledig veilig. Als een gebruiker de stappen uitvoert, belandt hij op een awareness pagina die uitlegt wat er net is gebeurd." data-en="In this guide I show how I built a fully working ClickFix simulation that is indistinguishable from a real attack from the outside — with one crucial difference: the payload is completely safe. If a user follows the steps, they land on an awareness page that explains what just happened.">In deze gids laat ik zien hoe ik een volledig werkende ClickFix simulatie bouwde die er van buitenaf ononderscheidbaar is van een echte aanval — met één cruciaal verschil: de payload is volledig veilig. Als een gebruiker de stappen uitvoert, belandt hij op een awareness pagina die uitlegt wat er net is gebeurd.</span></p>
+
+    
+    <h3><span data-nl="Waarom niet gewoon GoPhish gebruiken?" data-en="Why not just use GoPhish?">Waarom niet gewoon GoPhish gebruiken?</span></h3>
+    <p><span data-nl="GoPhish is een geweldig open source platform voor phishing simulaties — maar het heeft geen ingebouwde ondersteuning voor ClickFix of FakeCaptcha aanvallen. GoPhish is primair gebouwd voor klassieke phishing: een overtuigende e-mail sturen, een neppe loginpagina tonen en credentials harvesten." data-en="GoPhish is a great open source platform for phishing simulations — but it has no built-in support for ClickFix or FakeCaptcha attacks. GoPhish is primarily built for classic phishing: sending a convincing email, showing a fake login page and harvesting credentials.">GoPhish is een geweldig open source platform voor phishing simulaties — maar het heeft geen ingebouwde ondersteuning voor ClickFix of FakeCaptcha aanvallen. GoPhish is primair gebouwd voor klassieke phishing: een overtuigende e-mail sturen, een neppe loginpagina tonen en credentials harvesten.</span></p>
+
+    <p><span data-nl="ClickFix werkt fundamenteel anders. Er worden geen credentials gestolen — de gebruiker wordt misleid om zelf een commando uit te voeren. Dat vereist:" data-en="ClickFix works fundamentally differently. No credentials are stolen — the user is tricked into executing a command themselves. That requires:">ClickFix werkt fundamenteel anders. Er worden geen credentials gestolen — de gebruiker wordt misleid om zelf een commando uit te voeren. Dat vereist:</span></p>
+
+    <div class="info-box note">
+      <div class="info-box-title" style="color: var(--s-winr);"><span data-nl="Wat GoPhish mist voor ClickFix" data-en="What GoPhish lacks for ClickFix">Wat GoPhish mist voor ClickFix</span></div>
+      <p><span data-nl="• Geen clipboard API — GoPhish kan geen JavaScript uitvoeren dat stilletjes iets naar het clipboard kopieert" data-en="• No clipboard API — GoPhish cannot execute JavaScript that silently copies something to the clipboard">• Geen clipboard API — GoPhish kan geen JavaScript uitvoeren dat stilletjes iets naar het clipboard kopieert</span><br>
+      <span data-nl="• Geen multi-page flow — GoPhish serveert één landing page, maar ClickFix heeft meerdere stappen nodig" data-en="• No multi-page flow — GoPhish serves one landing page, but ClickFix needs multiple steps">• Geen multi-page flow — GoPhish serveert één landing page, maar ClickFix heeft meerdere stappen nodig</span><br>
+      <span data-nl="• Geen Win+R tracking — GoPhish weet niet of een gebruiker daadwerkelijk een commando heeft uitgevoerd buiten de browser" data-en="• No Win+R tracking — GoPhish has no way of knowing if a user actually executed a command outside the browser">• Geen Win+R tracking — GoPhish weet niet of een gebruiker daadwerkelijk een commando heeft uitgevoerd buiten de browser</span><br>
+      <span data-nl="• Geen commerciële alternatieven — tools als KnowBe4 en Proofpoint hebben nog geen kant-en-klare ClickFix templates" data-en="• No commercial alternatives — tools like KnowBe4 and Proofpoint do not yet have ready-made ClickFix templates">• Geen commerciële alternatieven — tools als KnowBe4 en Proofpoint hebben nog geen kant-en-klare ClickFix templates</span></p>
+    </div>
+
+    <p><span data-nl="De oplossing: GoPhish gebruiken voor wat het goed doet (e-mail delivery en RID tracking) en de ClickFix simulatie zelf bouwen als externe webpagina. GoPhish stuurt de gebruiker naar mijn pagina, mijn pagina doet de rest — en via Sentinel koppel ik alles weer samen." data-en="The solution: use GoPhish for what it does well (email delivery and RID tracking) and build the ClickFix simulation as an external web page. GoPhish sends the user to my page, my page does the rest — and via Sentinel I tie everything back together.">De oplossing: GoPhish gebruiken voor wat het goed doet (e-mail delivery en RID tracking) en de ClickFix simulatie zelf bouwen als externe webpagina. GoPhish stuurt de gebruiker naar mijn pagina, mijn pagina doet de rest — en via Sentinel koppel ik alles weer samen.</span></p>
+
+<blockquote style="color: var(--white); background: rgba(227,70,138,0.08); border-color: var(--s-geklikt);">
+      "Een website vraagt je nooit om Win+R te drukken en iets te plakken. Nooit. Als dat gebeurt, sluit de pagina en meld het bij IT Security."
+    </blockquote>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background: var(--s-verzonden);"></div>
+        <h4><span data-nl="Stap 1 — E-mail via GoPhish" data-en="Step 1 — Email via GoPhish">Stap 1 — E-mail via GoPhish</span></h4>
+        <p><span data-nl="Medewerkers ontvangen een phishing mail met een link naar de simulatiepagina. GoPhish registreert automatisch wie de mail opent en wie op de link klikt." data-en="Employees receive a phishing email with a link to our simulation page. GoPhish automatically registers who opens the email and who clicks the link.">Medewerkers ontvangen een phishing mail met een link naar de simulatiepagina. GoPhish registreert automatisch wie de mail opent en wie op de link klikt.</span></p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background: var(--s-geklikt);"></div>
+        <h4><span data-nl="Stap 2 — index.html laden" data-en="Step 2 — Loading index.html">Stap 2 — index.html laden</span></h4>
+        <p><span data-nl="De link opent een neppe Microsoft beveiligingspagina. Het bezoek wordt geregistreerd in Azure AppServiceHTTPLogs met het unieke RID (Recipient ID) van GoPhish." data-en="The link opens a fake Microsoft/your organisation security page. The visit is recorded in Azure AppServiceHTTPLogs with the unique RID (Recipient ID) from GoPhish.">De link opent een neppe Microsoft beveiligingspagina. Het bezoek wordt geregistreerd in Azure AppServiceHTTPLogs met het unieke RID (Recipient ID) van GoPhish.</span></p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background: var(--s-clickfix);"></div>
+        <h4><span data-nl="Stap 3 — ClickFix trigger" data-en="Step 3 — ClickFix trigger">Stap 3 — ClickFix trigger</span></h4>
+        <p><span data-nl="Gebruiker selecteert &quot;Enable Passkey Method&quot; en klikt Next. De awareness pagina URL wordt stil naar het clipboard gekopieerd. Een modal instrueert Win+R → Ctrl+V → Enter." data-en="User selects &quot;Enable Passkey Method&quot; and clicks Next. The awareness page URL is silently copied to the clipboard. A modal instructs Win+R → Ctrl+V → Enter.">De gebruiker selecteert "Enable Passkey Method" en klikt Next. De awareness URL wordt stil naar het clipboard gekopieerd. Een modal instrueert Win+R → Ctrl+V → Enter.</span></p>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background: var(--s-winr);"></div>
+        <h4><span data-nl="Stap 4 — Awareness pagina" data-en="Step 4 — Awareness page">Stap 4 — Awareness pagina</span></h4>
+        <p><span data-nl="Als de gebruiker de stappen uitvoert, opent de awareness pagina in de Run-dialog. Het bezoek aan <code>/source/content.webp</code> bevestigt 100% dat de gebruiker Win+R heeft uitgevoerd." data-en="If the user follows the steps, the awareness page opens in the Run dialog. The visit to <code>/source/content.webp</code> confirms 100% that the user executed Win+R.">Als de gebruiker de stappen uitvoert, opent de awareness pagina in de Run-dialog. Het bezoek aan <code>/source/content.webp</code> bevestigt 100% dat de gebruiker Win+R heeft uitgevoerd.</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TECHNISCHE OPZET -->
+<div id="technisch">
+  <div class="section">
+    <div class="section-label" style="color: var(--s-clickfix);">
+      <div class="dot" style="background: var(--s-clickfix);"></div>
+      Architectuur
+    </div>
+    <h2><span data-nl="Technische opzet" data-en="Technical setup">Technische opzet</span></h2>
+    <p><span data-nl="De volledige stack is gebouwd op bestaande Microsoft en open source tooling. Geen dure commerciële simulatieplatformen — alles zelfgebouwd, volledig in eigen beheer." data-en="The complete stack is built on existing Microsoft and open source tooling. No expensive commercial simulation platforms — everything self-built, fully in-house.">De volledige stack is gebouwd op bestaande Microsoft en open source tooling. Geen dure commerciële simulatieplatformen — alles zelfgebouwd, volledig in eigen beheer.</span></p>
+
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-header" style="background: var(--s-verzonden);">GoPhish Server</div>
+        <div class="arch-body">
+          <div class="url" style="color: var(--s-verzonden);">YOUR_GOPHISH_SERVER:3333</div>
+          <ul>
+            <li>E-mail delivery</li>
+            <li>Campaign beheer</li>
+            <li>RID tracking per ontvanger</li>
+            <li>API voor data export</li>
+          </ul>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-header" style="background: var(--s-geklikt);">Azure App Service</div>
+        <div class="arch-body">
+          <div class="url" style="color: var(--s-geklikt);">YOUR_SIMULATION_DOMAIN</div>
+          <ul>
+            <li>index.html — eerste pagina</li>
+            <li>add.html — ClickFix pagina</li>
+            <li>CSS gradient achtergrond</li>
+            <li>AppServiceHTTPLogs tracking</li>
+          </ul>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-header" style="background: var(--s-winr);">Awareness Pagina</div>
+        <div class="arch-body">
+          <div class="url" style="color: var(--s-winr);">YOUR_AWARENESS_DOMAIN</div>
+          <ul>
+            <li>Nederlandstalige uitleg</li>
+            <li>jouw organisatie branding</li>
+            <li>content.webp = tracking trigger</li>
+            <li>Link naar interne resources</li>
+          </ul>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-header" style="background: var(--s-clickfix);">Microsoft Sentinel</div>
+        <div class="arch-body">
+          <div class="url" style="color: var(--s-clickfix);">GoPhish_CL + GoPhishEnriched</div>
+          <ul>
+            <li>Python script pushes data</li>
+            <li>KQL functie combineert alles</li>
+            <li>Live funnel rapportage</li>
+            <li>Workbook dashboard</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WEBPAGINA'S -->
+<div id="webpaginas" style="background: var(--offwhite);">
+  <div class="section">
+    <div class="section-label" style="color: var(--s-verzonden);">
+      <div class="dot" style="background: var(--s-verzonden);"></div>
+      Frontend
+    </div>
+    <h2><span data-nl="De webpagina's" data-en="The web pages">De webpagina's</span></h2>
+    <p><span data-nl="De simulatiepagina's zijn zo gebouwd dat ze er identiek uitzien aan echte Microsoft beveiligingsprompts. Elke pagina geeft het GoPhish RID door via URL parameters zodat tracking door de hele keten werkt." data-en="The simulation pages are built to look identical to real Microsoft security prompts. Each page passes the GoPhish RID via URL parameters so tracking works through the entire chain.">De simulatiepagina's zijn zo gebouwd dat ze er identiek uitzien aan echte Microsoft beveiligingsprompts. Elke pagina geeft het GoPhish RID door via URL parameters zodat tracking door de hele keten werkt.</span></p>
+
+    <h3><span data-nl="index.html — Eerste contact" data-en="index.html — First contact">index.html — Eerste contact</span></h3>
+    <p><span data-nl="De eerste pagina die gebruikers zien na het klikken op de phishing link. Gestyled als een Microsoft account beveiligingspagina met jouw organisatie logo en <code>.onmicrosoft.com</code> domein indicator." data-en="The first page users see after clicking the phishing link. Styled as a Microsoft/your organisation account security page with your organisation logo and <code>.onmicrosoft.com</code> domain indicator.">De eerste pagina die gebruikers zien na het klikken op de phishing link. Gestyled als een Microsoft account beveiligingspagina met jouw organisatie logo en <code>.onmicrosoft.com</code> domein indicator.</span></p>
+
+    <pre><code class="code-label">JavaScript</code><span class="cm">// Read ?rid= from GoPhish URL</span>
+<span class="kw">const</span> params = <span class="kw">new</span> <span class="fn">URLSearchParams</span>(window.location.search);
+<span class="kw">const</span> rid = params.<span class="fn">get</span>(<span class="st">'rid'</span>) || <span class="st">'unknown'</span>;
+
+<span class="cm">// Pass rid forward to add.html in same directory</span>
+document.<span class="fn">getElementById</span>(<span class="st">'nextBtn'</span>).href = <span class="st">`add.html?rid=<span class="op">${</span>rid<span class="op">}</span>`</span>;</code></pre>
+
+    <h3><span data-nl="add.html — De ClickFix trigger" data-en="add.html — The ClickFix trigger">add.html — De ClickFix trigger</span></h3>
+    <p><span data-nl="De kern van de simulatie. Gestyled als een Microsoft MFA setup pagina met radio button opties. Wanneer de gebruiker &quot;Enable Passkey Method&quot; selecteert en op Next klikt:" data-en="The core of the simulation. Styled as a Microsoft MFA setup page with radio button options. When the user selects &quot;Enable Passkey Method&quot; and clicks Next:">De kern van de simulatie. Gestyled als een Microsoft MFA setup pagina met radio button opties. Wanneer de gebruiker "Enable Passkey Method" selecteert en op Next klikt:</span></p>
+
+    <pre><code class="code-label">JavaScript</code><span class="kw">const</span> payload = <span class="st">`https://YOUR_AWARENESS_DOMAIN/index.html?rid=<span class="op">${</span>rid<span class="op">}</span>`</span>;
+
+<span class="kw">function</span> <span class="fn">handleNext</span>() {
+  <span class="kw">const</span> selected = document.<span class="fn">querySelector</span>(<span class="st">'.option-tile.selected'</span>);
+  <span class="kw">if</span> (!selected) {
+    verifyMessage.style.display = <span class="st">'block'</span>;
+    <span class="kw">return</span>;
+  }
+  <span class="cm">// Silently copy awareness URL to clipboard</span>
+  navigator.clipboard.<span class="fn">writeText</span>(payload).<span class="fn">then</span>(() => {
+    modal.style.display = <span class="st">'flex'</span>; <span class="cm">// Show Win+R instructions</span>
+  });
+}</code></pre>
+
+    <div class="info-box info">
+      <div class="info-box-title" style="color: var(--s-verzonden);"><span data-nl="ℹ️ Geen echt commando" data-en="ℹ️ No real command">ℹ️ Geen echt commando</span></div>
+      <p><span data-nl="De clipboard payload is uitsluitend de URL naar de awareness pagina. Er wordt op geen enkel moment een echt commando of script naar het clipboard gekopieerd. De simulatie is volledig veilig." data-en="The clipboard payload is exclusively the URL to the awareness page. At no point is a real command or script copied to the clipboard. The simulation is completely safe.">De clipboard payload is uitsluitend de URL naar de awareness pagina. Er wordt op geen enkel moment een echt commando of script naar het clipboard gekopieerd. De simulatie is volledig veilig.</span></p>
+    </div>
+
+    <h3><span data-nl="Tracking via RID" data-en="Tracking via RID">Tracking via RID</span></h3>
+    <p><span data-nl="GoPhish maakt voor elke ontvanger een uniek Recipient ID (RID) aan. Dit RID wordt via <code>{{.RId}}</code> in de e-mail link ingevoegd en door alle pagina's heen doorgegeven als URL parameter." data-en="GoPhish generates a unique Recipient ID (RID) for each recipient. This RID is inserted via <code>{{.RId}}</code> in the email link and passed through all pages as a URL parameter.">GoPhish maakt voor elke ontvanger een uniek Recipient ID (RID) aan. Dit RID wordt via <code>{{.RId}}</code> in de e-mail link ingevoegd en door alle pagina's heen doorgegeven als URL parameter.</span></p>
+
+    <pre><code class="code-label">GoPhish template</code><span class="cm"># Landing page URL in GoPhish campaign:</span>
+https://YOUR_SIMULATION_DOMAIN/?rid=<span class="op">{{</span>.RId<span class="op">}}</span>
+
+<span class="cm"># GoPhish vervangt {{.RId}} automatisch, bijv:</span>
+https://YOUR_SIMULATION_DOMAIN/?rid=<span class="nm">BoziZZb</span></code></pre>
+  </div>
+</div>
+
+<!-- GOPHISH -->
+<div id="gophish" style="background: var(--darkbg);">
+  <div class="section section-dark">
+    <div class="section-label" style="color: var(--s-geklikt);">
+      <div class="dot" style="background: var(--s-geklikt);"></div>
+      GoPhish
+    </div>
+    <h2 style="color: var(--white);"><span data-nl="GoPhish integratie" data-en="GoPhish integration">GoPhish integratie</span></h2>
+    <p><span data-nl="GoPhish is een open source phishing simulatieplatform. Het verzorgt de e-mail delivery, RID generatie en basis click tracking. Via de REST API halen ik alle campaign resultaten op voor verwerking naar Sentinel." data-en="GoPhish is an open source phishing simulation platform. It handles email delivery, RID generation and basic click tracking. Via the REST API I retrieve all campaign results for processing to Sentinel.">GoPhish is een open source phishing simulatieplatform. Het verzorgt de e-mail delivery, RID generatie en basis click tracking. Via de REST API halen ik alle campaign resultaten op voor verwerking naar Sentinel.</span></p>
+
+    <div class="info-box warning" style="background: rgba(227,70,138,0.08); border-color: var(--s-geklikt);">
+      <div class="info-box-title" style="color: var(--s-geklikt);"><span data-nl="🔑 GoPhish API authenticatie" data-en="🔑 GoPhish API authentication">🔑 GoPhish API authenticatie</span></div>
+      <p><span data-nl="GoPhish verwacht de API key als query parameter, niet als Authorization header. Let hierop bij het bouwen van integraties." data-en="GoPhish expects the API key as a query parameter, not as an Authorization header. Keep this in mind when building integrations.">GoPhish verwacht de API key als query parameter, niet als Authorization header. Let hierop bij het bouwen van integraties.</span></p>
+    </div>
+
+    <pre><code class="code-label">Python</code><span class="cm"># Haal alle campaign resultaten op via GoPhish API</span>
+resp = requests.<span class="fn">get</span>(
+    <span class="st">f"<span class="op">{</span>GOPHISH_URL<span class="op">}</span>/api/campaigns/<span class="op">{</span>campaign_id<span class="op">}</span>/results?api_key=<span class="op">{</span>GOPHISH_API_KEY<span class="op">}</span>"</span>,
+    verify=<span class="kw">False</span>  <span class="cm"># Self-signed cert op localhost</span>
+)
+
+<span class="cm"># Response bevat per ontvanger:</span>
+<span class="cm"># id (RID), email, first_name, last_name, timeline</span></code></pre>
+
+    <p>Let op: GoPhish draait op HTTPS ook lokaal — gebruik <code>https://localhost:3333</code> als GOPHISH_URL, niet HTTP.</p>
+  </div>
+</div>
+
+<!-- SENTINEL -->
+<div id="sentinel">
+  <div class="section">
+    <div class="section-label" style="color: var(--s-clickfix);">
+      <div class="dot" style="background: var(--s-clickfix);"></div>
+      Microsoft Sentinel
+    </div>
+    <h2><span data-nl="Data pipeline naar Sentinel" data-en="Data pipeline to Sentinel">Data pipeline naar Sentinel</span></h2>
+    <p><span data-nl="Het hart van de oplossing is een Python script dat elk uur draait op de GoPhish server als cron job. Het combineert GoPhish campaign data met Azure AppServiceHTTPLogs en pusht alles naar een custom tabel in Microsoft Sentinel." data-en="The heart of the solution is a Python script that runs every hour on the GoPhish server as a cron job. It combines GoPhish campaign data with Azure AppServiceHTTPLogs and pushes everything to a custom table in Microsoft Sentinel.">Het hart van de oplossing is een Python script dat elk uur draait op de GoPhish server als cron job. Het combineert GoPhish campaign data met Azure AppServiceHTTPLogs en pusht alles naar een custom tabel in Microsoft Sentinel.</span></p>
+
+    <h3><span data-nl="Python sync script" data-en="Python sync script">Python sync script</span></h3>
+    <p>Het script draait elk uur en voert de volgende stappen uit:</p>
+
+    <pre><code class="code-label">Python — sentinel.py</code><span class="kw">import</span> json, logging, requests
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timezone, timedelta
+<span class="kw">from</span> azure.identity <span class="kw">import</span> ClientSecretCredential
+<span class="kw">from</span> azure.monitor.query <span class="kw">import</span> LogsQueryClient, LogsQueryStatus
+
+<span class="cm"># ── Configuratie ──────────────────────────</span>
+<span class="nm">GOPHISH_URL</span>      = <span class="st">"https://localhost:3333"</span>
+<span class="nm">GOPHISH_API_KEY</span>  = <span class="st">"YOUR_GOPHISH_API_KEY"</span>
+<span class="nm">TENANT_ID</span>        = <span class="st">"YOUR_TENANT_ID"</span>
+<span class="nm">CLIENT_ID</span>        = <span class="st">"YOUR_CLIENT_ID"</span>
+<span class="nm">CLIENT_SECRET</span>    = <span class="st">"YOUR_CLIENT_SECRET"</span>
+<span class="nm">DCE_ENDPOINT</span>     = <span class="st">"https://YOUR_DCE_ENDPOINT.ingest.monitor.azure.com"</span>
+<span class="nm">DCR_IMMUTABLE_ID</span> = <span class="st">"YOUR_DCR_IMMUTABLE_ID"</span>
+<span class="nm">STREAM_NAME</span>      = <span class="st">"Custom-GoPhish_CL"</span>
+<span class="nm">WORKSPACE_ID</span>     = <span class="st">"YOUR_WORKSPACE_ID"</span>
+<span class="nm">LOOKBACK_HOURS</span>   = <span class="nm">2</span>
+
+<span class="kw">def</span> <span class="fn">push_to_sentinel</span>(credential, records):
+    token = credential.<span class="fn">get_token</span>(<span class="st">"https://monitor.azure.com/.default"</span>).token
+    url = (
+        <span class="st">f"<span class="op">{</span>DCE_ENDPOINT<span class="op">}</span>/dataCollectionRules/<span class="op">{</span>DCR_IMMUTABLE_ID<span class="op">}</span>"</span>
+        <span class="st">f"/streams/<span class="op">{</span>STREAM_NAME<span class="op">}</span>?api-version=2023-01-01"</span>
+    )
+    resp = requests.<span class="fn">post</span>(url, data=json.<span class="fn">dumps</span>(records),
+        headers={<span class="st">"Authorization"</span>: <span class="st">f"Bearer <span class="op">{</span>token<span class="op">}</span>"</span>, <span class="st">"Content-Type"</span>: <span class="st">"application/json"</span>})
+    <span class="kw">return</span> resp.status_code  <span class="cm"># 204 = success</span></code></pre>
+
+    <h3><span data-nl="Vereiste Azure rechten" data-en="Required Azure permissions">Vereiste Azure rechten</span></h3>
+    <table class="tracking-table">
+      <tr><th>Rol</th><th>Scope</th><th>Doel</th></tr>
+      <tr><td><span class="badge" style="background: var(--s-verzonden);">Monitoring Metrics Publisher</span></td><td>Data Collection Rule</td><td>Data schrijven naar GoPhish_CL</td></tr>
+      <tr><td><span class="badge" style="background: var(--s-clickfix);">Log Analytics Reader</span></td><td>Log Analytics Workspace</td><td>Sentinel queries uitvoeren</td></tr>
+    </table>
+
+    <h3><span data-nl="GoPhish_CL tabel schema" data-en="GoPhish_CL table schema">GoPhish_CL tabel schema</span></h3>
+    <table class="tracking-table">
+      <tr><th>Kolom</th><th>Type</th><th>Beschrijving</th></tr>
+      <tr><td><code>RID</code></td><td>string</td><td>Uniek GoPhish Recipient ID</td></tr>
+      <tr><td><code>FirstName / LastName</code></td><td>string</td><td>Naam ontvanger</td></tr>
+      <tr><td><code>Email</code></td><td>string</td><td>E-mailadres</td></tr>
+      <tr><td><code>ClickedLink</code></td><td>bool</td><td>Link geklikt (GoPhish)</td></tr>
+      <tr><td><code>ExecutedClickFix</code></td><td>bool</td><td>Win+R uitgevoerd (Azure logs)</td></tr>
+      <tr><td><code>CampaignName</code></td><td>string</td><td>Naam van de campaign</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- KQL QUERIES -->
+<div id="dashboard" style="background: var(--offwhite);">
+  <div class="section">
+    <div class="section-label" style="color: var(--s-winr);">
+      <div class="dot" style="background: var(--s-winr);"></div>
+      KQL & Dashboard
+    </div>
+    <h2><span data-nl="GoPhishEnriched — de KQL functie" data-en="GoPhishEnriched — the KQL function">GoPhishEnriched — de KQL functie</span></h2>
+    <p><span data-nl="De slimste onderdeel van de oplossing is de <code>GoPhishEnriched</code> KQL functie in Sentinel. Deze combineert GoPhish_CL met live AppServiceHTTPLogs en dedupliceert automatisch zodat elke gebruiker maar één keer voorkomt — ook al heeft het Python script meerdere keren gedraaid." data-en="The smartest part of the solution is the <code>GoPhishEnriched</code> KQL function in Sentinel. This combines GoPhish_CL with live AppServiceHTTPLogs and automatically deduplicates so each user only appears once — even if the Python script has run multiple times.">De slimste onderdeel van de oplossing is de <code>GoPhishEnriched</code> KQL functie in Sentinel. Deze combineert GoPhish_CL met live AppServiceHTTPLogs en dedupliceert automatisch zodat elke gebruiker maar één keer voorkomt — ook al heeft het Python script meerdere keren gedraaid.</span></p>
+
+    <div class="kql-block">
+      <div class="kql-title">
+        <h4><span data-nl="GoPhishEnriched — Volledige KQL functie" data-en="GoPhishEnriched — Full KQL function">GoPhishEnriched — Volledige KQL functie</span></h4>
+        <span class="kql-tag">KQL</span>
+      </div>
+      <pre><code><span class="cm">// Alleen geldige GoPhish RIDs (bescherming tegen scanners)</span>
+<span class="kw">let</span> ValidRIDs = <span class="nm">GoPhish_CL</span>
+<span class="op">|</span> <span class="fn">summarize</span> <span class="fn">arg_max</span>(TimeGenerated, *) <span class="kw">by</span> RID
+<span class="op">|</span> <span class="fn">distinct</span> RID;
+
+<span class="cm">// Stap 1 — Link geklikt (index pagina)</span>
+<span class="kw">let</span> ClickedLink = AppServiceHTTPLogs
+<span class="op">|</span> <span class="kw">where</span> CsHost == <span class="st">"YOUR_SIMULATION_DOMAIN"</span>
+<span class="op">|</span> <span class="kw">where</span> CsUriStem == <span class="st">"/"</span> <span class="kw">or</span> CsUriStem == <span class="st">"/index.html"</span>
+<span class="op">|</span> <span class="fn">extend</span> RID = <span class="fn">extract</span>(<span class="st">"rid=([^&\" ]+)"</span>, <span class="nm">1</span>, CsUriQuery)
+<span class="op">|</span> <span class="kw">where</span> isnotempty(RID) <span class="kw">and</span> RID != <span class="st">"unknown"</span>
+<span class="op">|</span> <span class="kw">where</span> RID <span class="fn">matches regex</span> <span class="st">"^[A-Za-z0-9]{5,10}$"</span>
+<span class="op">|</span> <span class="kw">where</span> RID <span class="kw">in</span> (ValidRIDs)
+<span class="op">|</span> <span class="fn">summarize</span> ClickedAt = <span class="fn">min</span>(TimeGenerated) <span class="kw">by</span> RID;
+
+<span class="cm">// Stap 2 — ClickFix pagina bereikt</span>
+<span class="kw">let</span> ReachedClickFix = AppServiceHTTPLogs
+<span class="op">|</span> <span class="kw">where</span> CsUriStem == <span class="st">"/add.html"</span>
+<span class="op">|</span> <span class="fn">extend</span> RID = <span class="fn">extract</span>(<span class="st">"rid=([^&\" ]+)"</span>, <span class="nm">1</span>, CsUriQuery)
+<span class="op">|</span> <span class="kw">where</span> RID <span class="kw">in</span> (ValidRIDs)
+<span class="op">|</span> <span class="fn">summarize</span> ReachedClickFixAt = <span class="fn">min</span>(TimeGenerated) <span class="kw">by</span> RID;
+
+<span class="cm">// Stap 3 — Win+R uitgevoerd (100% bevestigd)</span>
+<span class="kw">let</span> ExecutedClickFix = AppServiceHTTPLogs
+<span class="op">|</span> <span class="kw">where</span> CsHost == <span class="st">"YOUR_AWARENESS_DOMAIN"</span>
+<span class="op">|</span> <span class="kw">where</span> CsUriStem <span class="fn">contains</span> <span class="st">"/source/content.webp"</span>
+<span class="op">|</span> <span class="fn">extend</span> RID = <span class="fn">extract</span>(<span class="st">"rid=([^&\" ]+)"</span>, <span class="nm">1</span>, Referer)
+<span class="op">|</span> <span class="kw">where</span> RID <span class="kw">in</span> (ValidRIDs)
+<span class="op">|</span> <span class="fn">summarize</span> ExecutedAt = <span class="fn">min</span>(TimeGenerated),
+    IPs = <span class="fn">make_set</span>(CIp) <span class="kw">by</span> RID;
+
+<span class="cm">// Stap 4 — Dedupliceer GoPhish_CL</span>
+<span class="kw">let</span> LatestGoPhish = <span class="nm">GoPhish_CL</span>
+<span class="op">|</span> <span class="fn">summarize</span> <span class="fn">arg_max</span>(TimeGenerated, *) <span class="kw">by</span> RID;
+
+<span class="cm">// Stap 5 — Alles samenvoegen</span>
+LatestGoPhish
+<span class="op">|</span> <span class="fn">join kind=leftouter</span> ClickedLink <span class="kw">on</span> $left.RID == $right.RID
+<span class="op">|</span> <span class="fn">join kind=leftouter</span> ReachedClickFix <span class="kw">on</span> $left.RID == $right.RID
+<span class="op">|</span> <span class="fn">join kind=leftouter</span> ExecutedClickFix <span class="kw">on</span> $left.RID == $right.RID
+<span class="op">|</span> <span class="fn">extend</span> ClickFixExecuted = <span class="fn">isnotempty</span>(ExecutedAt)
+<span class="op">|</span> <span class="fn">project</span> CampaignName, RID, FirstName, LastName, Email,
+    ClickedAt, ReachedClickFixAt, ClickFixExecuted, ExecutedAt, IPs
+<span class="op">|</span> <span class="fn">sort by</span> ClickedAt <span class="kw">desc</span></code></pre>
+    </div>
+
+    <div class="info-box success">
+      <div class="info-box-title" style="color: var(--s-clickfix);"><span data-nl="✓ Scanner bescherming" data-en="✓ Scanner protection">✓ Scanner bescherming</span></div>
+      <p><span data-nl="De <code>ValidRIDs</code> lookup en regex filter <code>^[A-Za-z0-9]{5,10}$</code> blokkeren XSS payloads, SSTI injection pogingen en botverkeer volledig. Alleen echte GoPhish ontvangers tellen mee in de resultaten." data-en="The <code>ValidRIDs</code> lookup and regex filter <code>^[A-Za-z0-9]{5,10}$</code> completely block XSS payloads, SSTI injection attempts and bot traffic. Only real GoPhish recipients count in the results.">De <code>ValidRIDs</code> lookup en regex filter <code>^[A-Za-z0-9]{5,10}$</code> blokkeren XSS payloads, SSTI injection pogingen en botverkeer volledig. Alleen echte GoPhish ontvangers tellen mee in de resultaten.</span></p>
+    </div>
+
+    <h3><span data-nl="Handige queries" data-en="Useful queries">Handige queries</span></h3>
+    <div class="kql-block">
+      <div class="kql-title">
+        <h4><span data-nl="Funnel overzicht per campaign" data-en="Funnel overview per campaign">Funnel overzicht per campaign</span></h4>
+        <span class="kql-tag">KQL</span>
+      </div>
+      <pre><code><span class="nm">GoPhish_CL</span>
+<span class="op">|</span> <span class="fn">summarize</span> <span class="fn">arg_max</span>(TimeGenerated, *) <span class="kw">by</span> RID
+<span class="op">|</span> <span class="fn">summarize</span>
+    <span class="nm">Ontvangers</span> = <span class="fn">dcount</span>(RID),
+    <span class="nm">Geklikt</span>    = <span class="fn">countif</span>(ClickedLink == <span class="kw">true</span>),
+    <span class="nm">ClickFix</span>   = <span class="fn">countif</span>(ExecutedClickFix == <span class="kw">true</span>)
+    <span class="kw">by</span> CampaignName</code></pre>
+    </div>
+
+    <div class="kql-block">
+      <div class="kql-title">
+        <h4><span data-nl="Wie voerde Win+R uit?" data-en="Who executed Win+R?">Wie voerde Win+R uit?</span></h4>
+        <span class="kql-tag">KQL</span>
+      </div>
+      <pre><code>GoPhishEnriched
+<span class="op">|</span> <span class="kw">where</span> ClickFixExecuted == <span class="kw">true</span>
+<span class="op">|</span> <span class="fn">project</span> CampaignName, FirstName, LastName, Email, ExecutedAt, IPs</code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTATEN -->
+<div id="resultaten" style="background: var(--darkbg);">
+  <div class="section-full section-dark">
+    <div class="section-label" style="color: var(--s-winr);"><div class="dot" style="background: var(--s-winr);"></div><span data-nl="Resultaten" data-en="Results">Resultaten</span></div>
+    <h2 style="color: var(--white); max-width: 780px; margin: 0 auto 20px;"><span data-nl="Wat leverde de eerste campaign op?" data-en="What did the first campaign reveal?">Wat leverde de eerste campaign op?</span></h2>
+    <p style="max-width: 780px; margin: 0 auto 40px;"><span data-nl="Onderstaande cijfers zijn fictieve voorbeelddata ter illustratie van hoe het Sentinel dashboard eruitziet na een echte campaign." data-en="The figures below are fictional example data to illustrate what the Sentinel dashboard looks like after a real campaign.">Onderstaande cijfers zijn fictieve voorbeelddata ter illustratie van hoe het Sentinel dashboard eruitziet na een echte campaign.</span></p>
+
+    <div class="stat-grid" style="max-width: 900px; margin: 0 auto 48px;">
+      <div class="stat-card" style="border-color: var(--s-verzonden);">
+        <div class="stat-value" style="color: var(--s-verzonden);">142</div>
+        <div class="stat-label"><span data-nl="E-mails verzonden" data-en="Emails sent">E-mails verzonden</span></div>
+        <div class="stat-pct" style="color: var(--gray);"><span data-nl="Totaal ontvangers" data-en="Total recipients">Totaal ontvangers</span></div>
+      </div>
+      <div class="stat-card" style="border-color: var(--s-geklikt);">
+        <div class="stat-value" style="color: var(--s-geklikt);">89</div>
+        <div class="stat-label"><span data-nl="Link geklikt" data-en="Link clicked">Link geklikt</span></div>
+        <div class="stat-pct" style="color: var(--s-geklikt);"><span data-nl="63% van verzonden" data-en="63% of sent">63% van verzonden</span></div>
+      </div>
+      <div class="stat-card" style="border-color: var(--s-clickfix);">
+        <div class="stat-value" style="color: var(--s-clickfix);">61</div>
+        <div class="stat-label"><span data-nl="ClickFix bereikt" data-en="ClickFix reached">ClickFix bereikt</span></div>
+        <div class="stat-pct" style="color: var(--s-clickfix);"><span data-nl="43% van verzonden" data-en="43% of sent">43% van verzonden</span></div>
+      </div>
+      <div class="stat-card" style="border-color: var(--s-winr);">
+        <div class="stat-value" style="color: var(--s-winr);">34</div>
+        <div class="stat-label"><span data-nl="Win+R uitgevoerd" data-en="Win+R executed">Win+R uitgevoerd</span></div>
+        <div class="stat-pct" style="color: var(--s-winr);"><span data-nl="24% van verzonden" data-en="24% of sent">24% van verzonden</span></div>
+      </div>
+    </div>
+
+    <p style="max-width: 780px; margin: 0 auto 20px; color: #E2E8F0;">Wat deze cijfers duidelijk maken: <span data-nl="<strong style=&quot;color: var(--white);&quot;>bijna 1 op de 4 medewerkers</strong> voerde daadwerkelijk een commando uit dat in een echte aanval tot een compromittering had geleid. Dit zijn de gebruikers die extra aandacht verdienen." data-en="<strong style=&quot;color: var(--white);&quot;>nearly 1 in 4 employees</strong> actually executed a command that in a real attack would have led to a compromise. These are the users that deserve extra attention."><strong style="color: var(--white);">bijna 1 op de 4 medewerkers</strong> voerde daadwerkelijk een commando uit dat in een echte aanval tot een compromittering had geleid. Dit zijn de gebruikers die extra aandacht verdienen.</span></p>
+
+    
+    <!-- Sentinel Dashboard Mockup -->
+    <div style="max-width: 960px; margin: 0 auto 48px; background: #1a1f2e; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.4); font-family: 'DM Sans', sans-serif;">
+
+      <!-- Title bar -->
+      <div style="background: #141820; padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 13px; font-weight: 600; color: #e2e8f0;">ClickFix Simulatie Dashboard</div>
+        <div style="font-size: 11px; color: #475569; margin-left: auto;">⭐ Opgeslagen Workbook · Microsoft Sentinel</div>
+      </div>
+
+      <!-- Filters bar -->
+      <div style="background: #1a1f2e; padding: 10px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; gap: 20px; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11px; color: #64748b;">Campaign</span>
+          <span style="background: #252c3d; border: 1px solid #334155; border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #94a3b8;">Alle campaigns</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11px; color: #64748b;">Tijdsbereik</span>
+          <span style="background: #252c3d; border: 1px solid #334155; border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #94a3b8;">Laatste 30 dagen</span>
+        </div>
+      </div>
+
+      <div style="padding: 20px;">
+
+        <!-- Section title -->
+        <div style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 10px; height: 10px; background: #334155; border-radius: 2px;"></div>
+          Aanvalsfunnel
+        </div>
+
+        <!-- Charts row -->
+        <div style="display: grid; grid-template-columns: 1fr 340px; gap: 20px; margin-bottom: 20px;">
+
+          <!-- Bar chart -->
+          <div style="background: #141820; border-radius: 8px; padding: 20px;">
+            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Aanvalsfunnel — Aantal gebruikers per stap</div>
+            <svg viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg" style="width:100%; height: auto;">
+              <!-- Grid lines -->
+              <line x1="50" y1="20" x2="480" y2="20" stroke="#1e2535" stroke-width="1"/>
+              <line x1="50" y1="60" x2="480" y2="60" stroke="#1e2535" stroke-width="1"/>
+              <line x1="50" y1="100" x2="480" y2="100" stroke="#1e2535" stroke-width="1"/>
+              <line x1="50" y1="140" x2="480" y2="140" stroke="#1e2535" stroke-width="1"/>
+              <line x1="50" y1="170" x2="480" y2="170" stroke="#334155" stroke-width="1"/>
+              <!-- Y axis labels -->
+              <text x="40" y="173" fill="#475569" font-size="10" text-anchor="end">0</text>
+              <text x="40" y="140" fill="#475569" font-size="10" text-anchor="end">50</text>
+              <text x="40" y="100" fill="#475569" font-size="10" text-anchor="end">100</text>
+              <text x="40" y="60" fill="#475569" font-size="10" text-anchor="end">150</text>
+              <text x="40" y="25" fill="#475569" font-size="10" text-anchor="end">200</text>
+              <!-- Bars: max=200, scale=150px height -->
+              <!-- Verzonden: 178 → 133px -->
+              <rect x="75" y="37" width="70" height="133" fill="#6E77C4" rx="2"/>
+              <text x="110" y="30" fill="#e2e8f0" font-size="11" text-anchor="middle" font-weight="600">178</text>
+              <!-- Geklikt: 112 → 84px -->
+              <rect x="185" y="86" width="70" height="84" fill="#E3468A" rx="2"/>
+              <text x="220" y="79" fill="#e2e8f0" font-size="11" text-anchor="middle" font-weight="600">112</text>
+              <!-- ClickFix: 74 → 56px -->
+              <rect x="295" y="114" width="70" height="56" fill="#00B294" rx="2"/>
+              <text x="330" y="107" fill="#e2e8f0" font-size="11" text-anchor="middle" font-weight="600">74</text>
+              <!-- Win+R: 43 → 32px -->
+              <rect x="405" y="138" width="70" height="32" fill="#9B8EC4" rx="2"/>
+              <text x="440" y="131" fill="#e2e8f0" font-size="11" text-anchor="middle" font-weight="600">43</text>
+              <!-- X axis labels -->
+              <text x="110" y="186" fill="#475569" font-size="10" text-anchor="middle">1. Verzonden</text>
+              <text x="220" y="186" fill="#475569" font-size="10" text-anchor="middle">2. Link geklikt</text>
+              <text x="330" y="186" fill="#475569" font-size="10" text-anchor="middle">3. ClickFix</text>
+              <text x="440" y="186" fill="#475569" font-size="10" text-anchor="middle">4. Win+R</text>
+            </svg>
+          </div>
+
+          <!-- Donut chart -->
+          <div style="background: #141820; border-radius: 8px; padding: 20px;">
+            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Verdeling uitkomsten</div>
+            <svg viewBox="0 0 220 195" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+              <!-- Donut chart: with gaps between segments, centered at 92,88 -->
+              <!-- Niet geklikt 37% -->
+              <path d="M 91.134,25.01 A 65,65 0 0,1 138.152,133.662 L 121.114,118.212 A 42,42 0 0,0 90.733,48.006 Z" fill="#6E77C4"/>
+              <!-- Geklikt 21.5% -->
+              <path d="M 136.599,135.316 A 65,65 0 0,1 57.894,146.517 L 69.254,126.519 A 42,42 0 0,0 120.11,119.281 Z" fill="#E3468A"/>
+              <!-- ClickFix 17% -->
+              <path d="M 55.941,145.362 A 65,65 0 0,1 25.006,89.092 L 48.004,89.414 A 42,42 0 0,0 67.993,125.773 Z" fill="#00B294"/>
+              <!-- Win+R 24.5% -->
+              <path d="M 25.078,86.825 A 65,65 0 0,1 88.866,25.01 L 89.267,48.006 A 42,42 0 0,0 48.05,87.948 Z" fill="#9B8EC4"/>
+              <!-- Inner hole -->
+              <circle cx="90" cy="90" r="42" fill="#141820"/>
+              <text x="90" y="87" fill="#e2e8f0" font-size="18" font-weight="700" text-anchor="middle">178</text>
+              <text x="90" y="101" fill="#64748b" font-size="9" text-anchor="middle">Totaal</text>
+              <!-- Legend — pushed down with more spacing -->
+              <rect x="10" y="162" width="8" height="8" fill="#6E77C4" rx="1"/>
+              <text x="22" y="170" fill="#94a3b8" font-size="9">Niet geklikt 37%</text>
+              <rect x="115" y="162" width="8" height="8" fill="#E3468A" rx="1"/>
+              <text x="127" y="170" fill="#94a3b8" font-size="9">Geklikt 21%</text>
+              <rect x="10" y="178" width="8" height="8" fill="#00B294" rx="1"/>
+              <text x="22" y="186" fill="#94a3b8" font-size="9">ClickFix 17%</text>
+              <rect x="115" y="178" width="8" height="8" fill="#9B8EC4" rx="1"/>
+              <text x="127" y="186" fill="#94a3b8" font-size="9">Win+R 24%</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- KPI tiles -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
+          <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #6E77C4;">
+            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">1. Verzonden</div>
+            <div style="font-size: 28px; font-weight: 700; color: #6E77C4; line-height: 1;">178</div>
+          </div>
+          <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #E3468A;">
+            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">2. Link geklikt</div>
+            <div style="font-size: 28px; font-weight: 700; color: #E3468A; line-height: 1;">112</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">63% van verzonden</div>
+          </div>
+          <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #00B294;">
+            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">3. ClickFix</div>
+            <div style="font-size: 28px; font-weight: 700; color: #00B294; line-height: 1;">74</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">42% van verzonden</div>
+          </div>
+          <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #9B8EC4;">
+            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">4. Win+R</div>
+            <div style="font-size: 28px; font-weight: 700; color: #9B8EC4; line-height: 1;">43</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">24% van verzonden</div>
+          </div>
+        </div>
+
+        <!-- Section title -->
+        <div style="font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 10px; height: 10px; background: #334155; border-radius: 2px;"></div>
+          Resultaten per campaign
+        </div>
+
+        <!-- Campaign table -->
+        <div style="background: #141820; border-radius: 8px; overflow: hidden;">
+          <div style="padding: 10px 16px; border-bottom: 1px solid #1e2535;">
+            <div style="background: #1a1f2e; border: 1px solid #334155; border-radius: 4px; padding: 5px 10px; font-size: 11px; color: #475569; display: inline-flex; align-items: center; gap: 6px;">
+              🔍 Search
+            </div>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+              <tr style="border-bottom: 1px solid #1e2535;">
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">CampaignName ↑↓</th>
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">Ontvangers ↑↓</th>
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">Geklikt ↑↓</th>
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">PctGeklikt ↑↓</th>
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">ClickFix ↑↓</th>
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">PctClickFix ↑↓</th>
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">WinR ↑↓</th>
+                <th style="padding: 10px 16px; text-align: left; color: #64748b; font-weight: 500;">PctWinR ↑↓</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid #1a1f2e;">
+                <td style="padding: 10px 16px; color: #e2e8f0;">Q1 Awareness</td>
+                <td style="padding: 10px 16px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 60px; height: 6px; background: #1e2535; border-radius: 3px; overflow: hidden;">
+                      <div style="width: 100%; height: 100%; background: #6E77C4; border-radius: 3px;"></div>
+                    </div>
+                    <span style="color: #94a3b8;">112</span>
+                  </div>
+                </td>
+                <td style="padding: 10px 16px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 60px; height: 6px; background: #1e2535; border-radius: 3px; overflow: hidden;">
+                      <div style="width: 63%; height: 100%; background: #E3468A; border-radius: 3px;"></div>
+                    </div>
+                    <span style="color: #94a3b8;">71</span>
+                  </div>
+                </td>
+                <td style="padding: 10px 16px; color: #94a3b8;">63.4%</td>
+                <td style="padding: 10px 16px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 60px; height: 6px; background: #1e2535; border-radius: 3px; overflow: hidden;">
+                      <div style="width: 42%; height: 100%; background: #00B294; border-radius: 3px;"></div>
+                    </div>
+                    <span style="color: #94a3b8;">47</span>
+                  </div>
+                </td>
+                <td style="padding: 10px 16px; color: #94a3b8;">42.0%</td>
+                <td style="padding: 10px 16px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 60px; height: 6px; background: #1e2535; border-radius: 3px; overflow: hidden;">
+                      <div style="width: 24%; height: 100%; background: #9B8EC4; border-radius: 3px;"></div>
+                    </div>
+                    <span style="color: #94a3b8;">27</span>
+                  </div>
+                </td>
+                <td style="padding: 10px 16px; color: #94a3b8;">24.1%</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #1a1f2e;">
+                <td style="padding: 10px 16px; color: #e2e8f0;">Finance Team</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">66</td>
+                <td style="padding: 10px 16px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 60px; height: 6px; background: #1e2535; border-radius: 3px; overflow: hidden;">
+                      <div style="width: 62%; height: 100%; background: #E3468A; border-radius: 3px;"></div>
+                    </div>
+                    <span style="color: #94a3b8;">41</span>
+                  </div>
+                </td>
+                <td style="padding: 10px 16px; color: #94a3b8;">62.1%</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">27</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">40.9%</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">16</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">24.2%</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 16px; color: #e2e8f0;">IT Afdeling</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">38</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">18</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">47.4%</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">8</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">21.1%</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">3</td>
+                <td style="padding: 10px 16px; color: #94a3b8;">7.9%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="text-align: right; padding-top: 10px; font-size: 10px; color: #334155; font-style: italic;">
+          * Fictieve voorbeelddata — Microsoft Sentinel Workbook
+        </div>
+      </div>
+    </div>
+<div class="info-box note" style="max-width: 780px; margin: 0 auto; background: rgba(155,142,196,0.1); border-color: var(--s-winr);">
+      <div class="info-box-title" style="color: var(--s-winr);"><span data-nl="📊 Workbook in Sentinel" data-en="📊 Workbook in Sentinel">📊 Workbook in Sentinel</span></div>
+      <p style="color: #E2E8F0;"><span data-nl="Het volledige dashboard — inclusief funnel grafiek, taartdiagram, tijdlijn en individuele resultatenlijst — is beschikbaar als importeerbaar Sentinel Workbook JSON bestand. Alle data is live en filtert automatisch op bots en scanners via de ValidRIDs lookup." data-en="The complete dashboard — including funnel chart, pie chart, timeline and individual results list — is available as an importable Sentinel Workbook JSON file. All data is live and automatically filters out bots and scanners via the ValidRIDs lookup.">Het volledige dashboard — inclusief funnel grafiek, taartdiagram, tijdlijn en individuele resultatenlijst — is beschikbaar als importeerbaar Sentinel Workbook JSON bestand. Alle data is live en filtert automatisch op bots en scanners via de ValidRIDs lookup.</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- CONCLUSIE -->
+<div id="conclusie">
+  <div class="section">
+    <div class="section-label" style="color: var(--s-geklikt);">
+      <div class="dot" style="background: var(--s-geklikt);"></div>
+      Conclusie
+    </div>
+    <h2><span data-nl="Wat hebben we geleerd?" data-en="What did we learn?">Wat hebben we geleerd?</span></h2>
+    <p class="lead"><span data-nl="Een volledige ClickFix simulatie is te bouwen met open source tooling en bestaande Microsoft infrastructuur — zonder dure commerciële platforms. Ik deel alles: de code, de KQL queries, het Sentinel workbook en deze uitleg." data-en="A complete ClickFix simulation can be built with open source tooling and existing Microsoft infrastructure — without expensive commercial platforms. I share everything: the code, KQL queries, Sentinel workbook and this writeup.">Een volledige ClickFix simulatie is te bouwen met open source tooling en bestaande Microsoft infrastructuur — zonder dure commerciële platforms. Ik deel alles: de code, de KQL queries, het Sentinel workbook en deze uitleg.</span></p>
+
+    <div class="conclusion-grid" style="grid-template-columns: 1fr;">
+      <div class="conclusion-card" style="background: var(--offwhite); border: 1px solid var(--lgray);">
+        <h4 style="color: var(--s-verzonden);"><span data-nl="✓ Wat werkte goed" data-en="✓ What worked well">✓ Wat werkte goed</span></h4>
+        <ul>
+          <li><span>🎯</span><span data-nl="GoPhish + Azure = volledige tracking keten" data-en="GoPhish + Azure = complete tracking chain">GoPhish + Azure = volledige tracking keten</span></li>
+          <li><span>📊</span><span data-nl="Sentinel workbook geeft live inzicht" data-en="Sentinel workbook gives live insight">Sentinel workbook geeft live inzicht</span></li>
+          <li><span>🔒</span><span data-nl="ValidRIDs filter houdt data schoon" data-en="ValidRIDs filter keeps data clean">ValidRIDs filter houdt data schoon</span></li>
+          <li><span>🤖</span><span data-nl="Python cron job automatiseert alles" data-en="Python cron job automates everything">Python cron job automatiseert alles</span></li>
+          <li><span>🎨</span><span data-nl="Consistente kleurcodering door hele stack" data-en="Consistent colour coding throughout the stack">Consistente kleurcodering door hele stack</span></li>
+        </ul>
+      </div>
+      <div class="conclusion-card" style="background: var(--offwhite); border: 1px solid var(--lgray);">
+        <h4 style="color: var(--s-geklikt);"><span data-nl="⚠️ Aanbevelingen" data-en="⚠️ Recommendations">⚠️ Aanbevelingen</span></h4>
+        <ul>
+          <li><span>🏫</span><span data-nl="Target vervolgtraining op de 24% die Win+R uitvoerde" data-en="Target follow-up training at the 24% who executed Win+R">Target vervolgtraining op de 24% die Win+R uitvoerde</span></li>
+          <li><span>🔁</span><span data-nl="Herhaal simulatie na 3-6 maanden" data-en="Repeat simulation after 3-6 months">Herhaal simulatie na 3-6 maanden</span></li>
+          <li><span>📢</span><span data-nl="Communiceer resultaten aan management" data-en="Communicate results to management">Communiceer resultaten aan management</span></li>
+          <li><span>🛡️</span><span data-nl="Combineer met DC hardening maatregelen" data-en="Combine with DC hardening measures">Combineer met DC hardening maatregelen</span></li>
+          <li><span>📋</span><span data-nl="Documenteer alles — dit blog is een start" data-en="Document everything — this blog is a start">Documenteer alles — dit blog is een start</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <blockquote>
+      <span data-nl="&quot;Een website vraagt je nooit om Win+R te drukken en iets te plakken. Als dat gebeurt — sluit de pagina, en meld het.&quot;" data-en="&quot;A website will never ask you to press Win+R and paste something. If that happens — close the page, and report it.&quot;">"Een website vraagt je nooit om Win+R te drukken en iets te plakken. Als dat gebeurt — sluit de pagina, en meld het."</span>
+    </blockquote>
+
+    <h3><span data-nl="De belangrijkste les" data-en="The key lesson">De belangrijkste les</span></h3>
+    <p><span data-nl="ClickFix werkt omdat het gebruik maakt van vertrouwen. Gebruikers vertrouwen Microsoft pagina's. Ze vertrouwen MFA prompts. Ze vertrouwen hun werkgever. Een aanvaller die dat vertrouwen nabootst, hoeft geen exploit te gebruiken — de gebruiker doet het werk." data-en="ClickFix works because it exploits trust. Users trust Microsoft pages. They trust MFA prompts. They trust their employer. An attacker who mimics that trust does not need to use an exploit — the user does the work.">ClickFix werkt omdat het gebruik maakt van vertrouwen. Gebruikers vertrouwen Microsoft pagina's. Ze vertrouwen MFA prompts. Ze vertrouwen hun werkgever. Een aanvaller die dat vertrouwen nabootst, hoeft geen exploit te gebruiken — de gebruiker doet het werk.</span></p>
+
+    <p><span data-nl="De enige verdediging is bewustzijn. En bewustzijn bouw je niet met een jaarlijkse e-learning, maar met realistische simulaties die mensen daadwerkelijk laten ervaren hoe een aanval werkt. Precies wat ik hier laat zien." data-en="The only defence is awareness. And awareness is not built with an annual e-learning, but with realistic simulations that actually let people experience how an attack works. Exactly what I show here.">De enige verdediging is bewustzijn. En bewustzijn bouw je niet met een jaarlijkse e-learning, maar met realistische simulaties die mensen daadwerkelijk laten ervaren hoe een aanval werkt. Precies wat ik hier laat zien.</span></p>
+
+    <div class="info-box success">
+      <div class="info-box-title" style="color: var(--s-clickfix);"><span data-nl="🚀 Open source beschikbaar" data-en="🚀 Available open source">🚀 Open source beschikbaar</span></div>
+      <p><span data-nl="Alle bestanden uit deze gids — simulatiepagina's, Python script, KQL functie en Sentinel workbook — zijn beschikbaar op GitHub. Fork de repo, pas aan naar jouw omgeving en je bent klaar." data-en="All files from this guide — simulation pages, Python script, KQL function and Sentinel workbook — are available on GitHub. Fork the repo, adapt to your environment and you're ready to go.">Alle bestanden uit deze gids — simulatiepagina's, Python script, KQL functie en Sentinel workbook — zijn beschikbaar op GitHub. Fork de repo, pas aan naar jouw omgeving en je bent klaar.</span></p>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <p>© 2026 Security Awareness Blog — <a href="https://github.com/Jeroenvdbroek/gophish-clickfix">GitHub repository — Jeroen van der Broek</a> — <span data-nl="Vrij te delen — zie GitHub voor alle bestanden" data-en="Free to share — see GitHub for all files">Vrij te delen — zie GitHub voor alle bestanden</span></p>
+  <p style="margin-top: 8px;"><span data-nl="Gebouwd met GoPhish, Azure App Service, Microsoft Sentinel en veel koffie ☕" data-en="Built with GoPhish, Azure App Service, Microsoft Sentinel and lots of coffee ☕">Gebouwd met GoPhish, Azure App Service, Microsoft Sentinel en veel koffie ☕</span></p>
+</footer>
+
+<script>
+const translations = {
+  // Meta
+  'page-title-nl': 'Hoe zelf een ClickFix simulatie te bouwen',
+  'page-title-en': 'How to build your own ClickFix simulation',
+
+  // Hero
+  'hero-tag': { nl: 'Security Awareness', en: 'Security Awareness' },
+  'hero-h1-1': { nl: 'Hoe zelf een ClickFix simulatie te bouwen', en: 'How to build your own ClickFix simulation' },
+  'hero-h1-em': { nl: 'ClickFix', en: 'ClickFix' },
+  'hero-h1-2': { nl: 'aanvallen', en: 'attacks' },
+  'hero-sub': { nl: 'Een volledig zelfgebouwde phishing simulatie — van neppe Microsoft pagina tot live Sentinel dashboard — in één dag opgezet.', en: 'I built this myself because no tool exists for it — from fake Microsoft MFA page to live Sentinel dashboard. Everything I used is open source and freely available.' },
+  'hero-meta-1': { nl: '📅 Maart 2026', en: '📅 March 2026' },
+  'hero-meta-2': { nl: '🏥 jouw organisatie Security Team', en: '🏥 your organisation Security Team' },
+  'hero-meta-3': { nl: '⏱ 15 min leestijd', en: '⏱ 15 min read' },
+
+  // Nav
+  'nav-1': { nl: 'Wat is ClickFix?', en: 'What is ClickFix?' },
+  'nav-2': { nl: 'De simulatie', en: 'The simulation' },
+  'nav-3': { nl: 'Technisch', en: 'Technical' },
+  'nav-4': { nl: "Webpagina's", en: 'Web pages' },
+  'nav-5': { nl: 'GoPhish', en: 'GoPhish' },
+  'nav-6': { nl: 'Sentinel', en: 'Sentinel' },
+  'nav-7': { nl: 'Dashboard', en: 'Dashboard' },
+  'nav-8': { nl: 'Resultaten', en: 'Results' },
+  'nav-9': { nl: 'Conclusie', en: 'Conclusion' },
+};
+
+// Map of element IDs to translation keys
+const elementMap = {
+  'hero-tag':    'hero-tag',
+  'hero-sub':    'hero-sub',
+  'hero-meta-1': 'hero-meta-1',
+  'hero-meta-2': 'hero-meta-2',
+  'hero-meta-3': 'hero-meta-3',
+  'nav-1': 'nav-1', 'nav-2': 'nav-2', 'nav-3': 'nav-3',
+  'nav-4': 'nav-4', 'nav-5': 'nav-5', 'nav-6': 'nav-6',
+  'nav-7': 'nav-7', 'nav-8': 'nav-8', 'nav-9': 'nav-9',
+};
+
+function setLang(lang) {
+  document.documentElement.lang = lang;
+  document.title = translations['page-title-' + lang];
+
+  // Toggle all [data-nl] / [data-en] elements
+  document.querySelectorAll('[data-nl]').forEach(el => {
+    el.innerHTML = lang === 'nl' ? el.dataset.nl : el.dataset.en;
+  });
+
+  // Update buttons
+  document.getElementById('btn-nl').classList.toggle('active', lang === 'nl');
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+
+  // Store preference
+  localStorage.setItem('blog-lang', lang);
+}
+
+// On load, restore preference
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('blog-lang') || 'nl';
+  setLang(saved);
+});
+</script>
+
+</body>
+</html>

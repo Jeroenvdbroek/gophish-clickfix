@@ -1,0 +1,12 @@
+.os-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin: 16px 0;
+}
+
+@media (max-width: 700px) {
+    .os-columns {
+        grid-template-columns: 1fr;
+    }
+}
