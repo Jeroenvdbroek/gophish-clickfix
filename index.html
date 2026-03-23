@@ -6,21 +6,25 @@
 <title>How to build your own ClickFix simulation — From fake Microsoft page to Sentinel dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.cdnfonts.com/css/good-times">
 <style>
   :root {
-    --s-verzonden: #6E77C4;
-    --s-geklikt:   #E3468A;
-    --s-clickfix:  #00B294;
-    --s-winr:      #9B8EC4;
-    --navy:        #002050;
-    --darkbg:      #001433;
-    --offwhite:    #F5F7FA;
-    --lgray:       #E2E8F0;
-    --gray:        #64748B;
-    --white:       #FFFFFF;
-    --text:        #1E293B;
-    --text-light:  #475569;
+    --s-verzonden: #d45c00;
+    --s-geklikt:   #b8001f;
+    --s-clickfix:  #1a6b3c;
+    --s-winr:      #005ea6;
+    --navy:        #171614;
+    --darkbg:      #f6f3ee;
+    --offwhite:    #fdfbf8;
+    --lgray:       #e0dbd3;
+    --gray:        #6b6560;
+    --white:       #fdfbf8;
+    --text:        #171614;
+    --text-light:  #2e2c29;
+    --orange:      #d45c00;
+    --code-bg:     #eee9e0;
+    --border:      #e0dbd3;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,8 +33,8 @@
 
   body {
     font-family: 'DM Sans', sans-serif;
-    background: var(--darkbg);
-    color: var(--white);
+    background: var(--offwhite);
+    color: var(--text);
     line-height: 1.7;
     font-size: 17px;
   }
@@ -41,7 +45,8 @@
   /* ── HERO ── */
   .hero {
     min-height: 100vh;
-    background: var(--darkbg);
+    background: var(--offwhite);
+    border-bottom: 2px solid var(--border);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -56,7 +61,7 @@
     position: absolute;
     top: -200px; right: -200px;
     width: 700px; height: 700px;
-    background: radial-gradient(circle, rgba(110,119,196,0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(212,92,0,0.08) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -65,7 +70,7 @@
     position: absolute;
     bottom: -100px; left: -100px;
     width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(0,178,148,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(212,92,0,0.05) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -85,7 +90,7 @@
   }
 
   .hero h1 {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Good Times', 'Orbitron', Georgia, sans-serif;
     font-size: clamp(2.8rem, 6vw, 5rem);
     line-height: 1.1;
     max-width: 800px;
@@ -94,13 +99,13 @@
   }
 
   .hero h1 em {
-    font-style: italic;
-    color: var(--s-geklikt);
+    font-style: normal;
+    color: var(--orange);
   }
 
   .hero-sub {
     font-size: 1.15rem;
-    color: #E2E8F0;
+    color: var(--text);
     max-width: 600px;
     margin-bottom: 40px;
     font-weight: 300;
@@ -111,7 +116,7 @@
     display: flex;
     gap: 32px;
     font-size: 13px;
-    color: #64748B;
+    color: #4a4540;
     animation: fadeUp 0.6s ease 0.3s both;
   }
 
@@ -126,7 +131,7 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: #475569;
+    color: #2e2c29;
     font-size: 11px;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -156,7 +161,7 @@
   nav {
     position: sticky;
     top: 0;
-    background: rgba(0,20,51,0.95);
+    background: rgba(253, 251, 248, 0.97);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(255,255,255,0.06);
     z-index: 100;
@@ -176,7 +181,7 @@
   nav a {
     display: block;
     padding: 18px 20px;
-    color: #64748B;
+    color: #4a4540;
     text-decoration: none;
     font-size: 13px;
     font-weight: 500;
@@ -186,7 +191,7 @@
     border-bottom: 2px solid transparent;
   }
 
-  nav a:hover { color: var(--white); border-bottom-color: var(--s-verzonden); }
+  nav a:hover { color: var(--text); border-bottom-color: var(--s-verzonden); }
 
   /* ── MAIN CONTENT ── */
   main {
@@ -205,8 +210,8 @@
   }
 
   .section-dark {
-    background: var(--darkbg);
-    color: var(--white);
+    background: var(--offwhite);
+    color: var(--text);
   }
 
   .section-accent {
@@ -231,14 +236,14 @@
   }
 
   h2 {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Good Times', 'Orbitron', Georgia, sans-serif;
     font-size: clamp(1.8rem, 3vw, 2.6rem);
     line-height: 1.2;
     margin-bottom: 20px;
     color: var(--navy);
   }
 
-  .section-dark h2 { color: var(--white); }
+  .section-dark h2 { color: var(--text); }
 
   h3 {
     font-size: 1.25rem;
@@ -249,8 +254,8 @@
 
   .section-dark h3 { color: var(--s-clickfix); }
 
-  p { margin-bottom: 20px; color: var(--text-light); }
-  .section-dark p { color: #E2E8F0; }
+  p { margin-bottom: 20px; color: var(--text); }
+  .section-dark p { color: var(--text); }
   .section-dark p span,
   .section-dark li span,
   .section-dark h3 span { color: inherit; }
@@ -275,14 +280,14 @@
     overflow-x: auto;
     margin: 24px 0;
     position: relative;
-    color: #E2E8F0;
+    color: var(--text);
   }
 
   pre code {
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     line-height: 1.8;
-    color: #E2E8F0;
+    color: var(--text);
   }
 
   .code-label {
@@ -291,7 +296,7 @@
     right: 16px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
-    color: #475569;
+    color: #2e2c29;
     text-transform: uppercase;
     letter-spacing: 1px;
   }
@@ -340,7 +345,7 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 700;
     font-size: 16px;
-    color: var(--white);
+    color: var(--text);
     flex-shrink: 0;
   }
 
@@ -349,7 +354,7 @@
 
   .funnel-arrow {
     text-align: center;
-    color: #E2E8F0;
+    color: var(--text);
     font-size: 20px;
     margin: 4px 0;
     padding-left: 44px;
@@ -373,13 +378,13 @@
   }
 
   .stat-value {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Good Times', 'Orbitron', Georgia, sans-serif;
     font-size: 3rem;
     line-height: 1;
     margin-bottom: 8px;
   }
 
-  .stat-label { font-size: 13px; color: var(--gray); font-weight: 500; }
+  .stat-label { font-size: 13px; color: #4a4540; font-weight: 500; }
   .stat-pct { font-size: 14px; font-weight: 600; margin-top: 4px; }
 
   /* ── INFO BOXES ── */
@@ -392,7 +397,7 @@
 
   .info-box.warning {
     background: rgba(227,70,138,0.08);
-    border-color: var(--s-geklikt);
+    border-color: var(--s-geklikt); /* #b8001f */
   }
 
   .info-box.info {
@@ -431,14 +436,14 @@
   .arch-card {
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   }
 
   .arch-header {
     padding: 16px 20px;
     font-weight: 700;
     font-size: 14px;
-    color: var(--white);
+    color: var(--text);
   }
 
   .arch-body {
@@ -460,7 +465,7 @@
 
   .arch-body li {
     font-size: 13px;
-    color: var(--text-light);
+    color: var(--text);
     padding: 3px 0;
     display: flex;
     align-items: flex-start;
@@ -473,7 +478,7 @@
   .arch-body li::before {
     content: '→';
     font-size: 10px;
-    color: #E2E8F0;
+    color: var(--text);
   }
 
   /* ── TRACKING TABLE ── */
@@ -485,8 +490,8 @@
   }
 
   .tracking-table th {
-    background: var(--navy);
-    color: var(--white);
+    background: var(--offwhite); border: 1px solid var(--border);
+    color: var(--text);
     padding: 12px 16px;
     text-align: left;
     font-weight: 600;
@@ -498,7 +503,7 @@
   .tracking-table td {
     padding: 12px 16px;
     border-bottom: 1px solid var(--lgray);
-    color: var(--text-light);
+    color: var(--text);
     vertical-align: top;
   }
 
@@ -511,7 +516,7 @@
     border-radius: 100px;
     font-size: 11px;
     font-weight: 700;
-    color: var(--white);
+    color: var(--text);
   }
 
   /* ── KQL QUERY BLOCKS ── */
@@ -579,18 +584,18 @@
     font-size: 15px;
     font-weight: 600;
     margin-bottom: 6px;
-    color: var(--white);
+    color: var(--text);
   }
 
   .timeline-item p {
     font-size: 14px;
-    color: #E2E8F0;
+    color: var(--text);
     margin: 0;
   }
 
   /* ── QUOTE ── */
   blockquote {
-    font-family: 'DM Serif Display', serif;
+    font-family: 'Good Times', 'Orbitron', Georgia, sans-serif;
     font-size: 1.5rem;
     font-style: italic;
     line-height: 1.5;
@@ -641,7 +646,7 @@
 
   .conclusion-card li {
     font-size: 13px;
-    color: #475569;
+    color: #2e2c29;
     padding: 6px 0;
     border-bottom: 1px solid rgba(0,0,0,0.06);
     display: flex;
@@ -663,16 +668,17 @@
     text-align: center;
   }
 
-  footer p { color: #334155; font-size: 13px; margin: 0; }
+  footer p { color: var(--text); font-size: 13px; margin: 0; }
   footer a { color: var(--s-verzonden); text-decoration: none; }
 
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--darkbg); }
+  ::-webkit-scrollbar-track { background: var(--offwhite); }
   ::-webkit-scrollbar-thumb { background: rgba(110,119,196,0.4); border-radius: 3px; }
 </style>
 </head>
 <body>
+<div style="height:4px;background:#d45c00;width:100%"></div>
 
 <!-- HERO -->
 <section class="hero">
@@ -680,7 +686,7 @@
   <h1><span>How to build your own ClickFix simulation</span></h1>
   <p class="hero-sub"><span>From fake Microsoft MFA page to live Sentinel dashboard — a step-by-step guide to building your own ClickFix phishing simulation using GoPhish, Azure and KQL.</span></p>
   <div class="hero-meta">
-    <span>✍️ Jeroen van der Broek</span>
+    <span>✍️ J. van der Broek</span>
     <span><span>📅 March 2026</span></span>
     <span><span>🛡️ Security Awareness</span></span>
     <span><span>⏱ 15 min read</span></span>
@@ -708,16 +714,16 @@
 <!-- WAT IS CLICKFIX -->
 <div id="wat-is-clickfix">
   <div class="section">
-    <div class="section-label" style="color: var(--s-verzonden);"><div class="dot" style="background: var(--s-verzonden);"></div><span>Background</span></div>
+    <div class="section-label" style="color: var(--s-verzonden);"><div class="dot" style="background: var(--orange);"></div><span>Background</span></div>
     <h2><span>What is a ClickFix attack?</span></h2>
-    <p class="lead">ClickFix — ook bekend als FakeCaptcha — is een van de gevaarlijkste social engineering technieken van dit moment. Niet omdat het technisch geavanceerd is, maar juist omdat het zo simpel werkt.</p>
+    <p class="lead">ClickFix — also known as FakeCaptcha — is one of the most dangerous social engineering techniques van dit moment. Niet omdat het technisch geavanceerd is, maar juist omdat het zo simpel werkt.</p>
 
     <p><span>In a ClickFix attack, an attacker creates a fake verification page that looks completely legitimate — think a Microsoft MFA setup screen, a Cloudflare CAPTCHA, or a browser verification prompt. The page asks the user to perform a &quot;verification step&quot;.</span></p>
 
-    <p><span>Wat de gebruiker niet weet: op het moment dat ze op de knop klikken, kopieert de pagina stilletjes een kwaadaardig commando naar hun clipboard. De "verificatiestap" instrueert hen vervolgens om <code>What the user does not know: the moment they click the button, the page silently copies a malicious command to their clipboard. The &quot;verification step&quot; then instructs them to press <code>Win+R</code> (the Windows Run dialog), paste the clipboard with <code>Ctrl+V</code> and press <code>Enter</code>.</code> te drukken (de Windows Run-dialog), het clipboard te plakken met <code>Ctrl+V</code> en <code>Enter</code> te drukken.</span></p>
+    <p><span>What the user does not know: the moment they click the button, the page silently copieslletjes een kwaadaardig commando naar hun clipboard. De "verificatiestap" instrueert hen vervolgens om <code>What the user does not know: the moment they click the button, the page silently copies a malicious command to their clipboard. The &quot;verification step&quot; then instructs them to press <code>Win+R</code> (the Windows Run dialog), paste the clipboard with <code>Ctrl+V</code> and press <code>Enter</code>.</code> te drukken (de Windows Run-dialog), het clipboard te plakken met <code>Ctrl+V</code> en <code>Enter</code> te drukken.</span></p>
 
     <div class="info-box warning">
-      <div class="info-box-title" style="color: var(--s-geklikt);"><span>⚠️ Why this is so dangerous</span></div>
+      <div class="info-box-title" style="color: var(--s-geklikt); /* #b8001f */"><span>⚠️ Why this is so dangerous</span></div>
       <p><span>The user executes the attack themselves. There is no exploit, no malware download, no suspicious attachment. The browser sees nothing wrong. Antivirus software raises no alarm. The attacker just has to wait.</span></p>
     </div>
 
@@ -726,7 +732,7 @@
     <div class="funnel" style="background: var(--offwhite); border-radius: 12px; padding: 32px;">
       <h3 style="margin-top: 0; color: var(--navy);"><span>The attack chain</span></h3>
       <div class="funnel-step" style="background: rgba(110,119,196,0.1);">
-        <div class="funnel-num" style="background: var(--s-verzonden);">1</div>
+        <div class="funnel-num" style="background: var(--orange);">1</div>
         <div class="funnel-text">
           <h4 style="color: var(--navy);"><span>Phishing email</span></h4>
           <p><span>User receives a convincing email with a link</span></p>
@@ -761,10 +767,10 @@
 </div>
 
 <!-- DE SIMULATIE -->
-<div id="simulatie" style="background: var(--darkbg);">
+<div id="simulatie" style="background: var(--offwhite);">
   <div class="section section-dark">
-    <div class="section-label" style="color: var(--s-geklikt);"><div class="dot" style="background: var(--s-geklikt);"></div><span>Our approach</span></div>
-    <h2 style="color: var(--white);"><span>The simulation — safe but realistic</span></h2>
+    <div class="section-label" style="color: var(--s-geklikt); /* #b8001f */"><div class="dot" style="background: var(--s-geklikt);"></div><span>Our approach</span></div>
+    <h2 style="color: var(--text);"><span>The simulation — safe but realistic</span></h2>
     <p><span>In this guide I show how I built a fully working ClickFix simulation that is indistinguishable from a real attack from the outside — with one crucial difference: the payload is completely safe. If a user follows the steps, they land on an awareness page that explains what just happened.</span></p>
 
     
@@ -783,13 +789,13 @@
 
     <p><span>The solution: use GoPhish for what it does well (email delivery and RID tracking) and build the ClickFix simulation as an external web page. GoPhish sends the user to my page, my page does the rest — and via Sentinel I tie everything back together.</span></p>
 
-<blockquote style="color: var(--white); background: rgba(227,70,138,0.08); border-color: var(--s-geklikt);">
+<blockquote style="color: var(--text); background: rgba(227,70,138,0.08); border-color: var(--s-geklikt); /* #b8001f */">
       "Een website vraagt je nooit om Win+R te drukken en iets te plakken. Nooit. Als dat gebeurt, sluit de pagina en meld het bij IT Security."
     </blockquote>
 
     <div class="timeline">
       <div class="timeline-item">
-        <div class="timeline-dot" style="background: var(--s-verzonden);"></div>
+        <div class="timeline-dot" style="background: var(--orange);"></div>
         <h4><span>Step 1 — Email via GoPhish</span></h4>
         <p><span>Employees receive a phishing email with a link to our simulation page. GoPhish automatically registers who opens the email and who clicks the link.</span></p>
       </div>
@@ -806,7 +812,7 @@
       <div class="timeline-item">
         <div class="timeline-dot" style="background: var(--s-winr);"></div>
         <h4><span>Step 4 — Awareness page</span></h4>
-        <p><span>Als de gebruiker de stappen uitvoert, opent de awareness pagina in de Run-dialog. Het bezoek aan <code>If the user follows the steps, the awareness page opens in the Run dialog. The visit to <code>/source/content.webp</code> confirms 100% that the user executed Win+R.</code> bevestigt 100% dat de gebruiker Win+R heeft uitgevoerd.</span></p>
+        <p><span>When the user follows the steps, the awareness page opens in the Run dialog. The visik aan <code>If the user follows the steps, the awareness page opens in the Run dialog. The visit to <code>/source/content.webp</code> confirms 100% that the user executed Win+R.</code> bevestigt 100% dat de gebruiker Win+R heeft uitgevoerd.</span></p>
       </div>
     </div>
   </div>
@@ -824,21 +830,21 @@
 
     <div class="arch-grid">
       <div class="arch-card">
-        <div class="arch-header" style="background: var(--s-verzonden);">GoPhish Server</div>
+        <div class="arch-header" style="background: var(--orange);">GoPhish Server</div>
         <div class="arch-body">
           <div class="url" style="color: var(--s-verzonden);">YOUR_GOPHISH_SERVER:3333</div>
           <ul>
             <li>E-mail delivery</li>
             <li>Campaign beheer</li>
             <li>RID tracking per ontvanger</li>
-            <li>API voor data export</li>
+            <li>API for data export</li>
           </ul>
         </div>
       </div>
       <div class="arch-card">
         <div class="arch-header" style="background: var(--s-geklikt);">Azure App Service</div>
         <div class="arch-body">
-          <div class="url" style="color: var(--s-geklikt);">YOUR_SIMULATION_DOMAIN</div>
+          <div class="url" style="color: var(--s-geklikt); /* #b8001f */">YOUR_SIMULATION_DOMAIN</div>
           <ul>
             <li>index.html — eerste pagina</li>
             <li>add.html — ClickFix pagina</li>
@@ -855,7 +861,7 @@
             <li>Nederlandstalige uitleg</li>
             <li>jouw organisatie branding</li>
             <li>content.webp = tracking trigger</li>
-            <li>Link naar interne resources</li>
+            <li>Link to internal resources</li>
           </ul>
         </div>
       </div>
@@ -879,14 +885,14 @@
 <div id="webpaginas" style="background: var(--offwhite);">
   <div class="section">
     <div class="section-label" style="color: var(--s-verzonden);">
-      <div class="dot" style="background: var(--s-verzonden);"></div>
+      <div class="dot" style="background: var(--orange);"></div>
       Frontend
     </div>
     <h2><span>The web pages</span></h2>
     <p><span>The simulation pages are built to look identical to real Microsoft security prompts. Each page passes the GoPhish RID via URL parameters so tracking works through the entire chain.</span></p>
 
     <h3><span>index.html — First contact</span></h3>
-    <p><span>De eerste pagina die gebruikers zien na het klikken op de phishing link. Gestyled als een Microsoft account beveiligingspagina met jouw organisatie logo en <code>The first page users see after clicking the phishing link. Styled as a Microsoft/your organisation account security page with your organisation logo and <code>.onmicrosoft.com</code> domain indicator.</code> domein indicator.</span></p>
+    <p><span>The first page users see after clicking the phishing link. Styled as a Microsoft account beveiligingspagina met jouw organisatie logo en <code>The first page users see after clicking the phishing link. Styled as a Microsoft/your organisation account security page with your organisation logo and <code>.onmicrosoft.com</code> domain indicator.</code> domein indicator.</span></p>
 
     <pre><code class="code-label">JavaScript</code><span class="cm">// Read ?rid= from GoPhish URL</span>
 <span class="kw">const</span> params = <span class="kw">new</span> <span class="fn">URLSearchParams</span>(window.location.search);
@@ -918,7 +924,7 @@ document.<span class="fn">getElementById</span>(<span class="st">'nextBtn'</span
     </div>
 
     <h3><span>Tracking via RID</span></h3>
-    <p><span>GoPhish maakt voor elke ontvanger een uniek Recipient ID (RID) aan. Dit RID wordt via <code>GoPhish generates a unique Recipient ID (RID) for each recipient. This RID is inserted via <code>{{.RId}}</code> in the email link and passed through all pages as a URL parameter.</code> in de e-mail link ingevoegd en door alle pagina's heen doorgegeven als URL parameter.</span></p>
+    <p><span>GoPhish creates a unique Recipient ID (RID) for each recipient. This RID is passed via <code>GoPhish generates a unique Recipient ID (RID) for each recipient. This RID is inserted via <code>{{.RId}}</code> in the email link and passed through all pages as a URL parameter.</code> in de e-mail link ingevoegd en door alle pagina's heen doorgegeven als URL parameter.</span></p>
 
     <pre><code class="code-label">GoPhish template</code><span class="cm"># Landing page URL in GoPhish campaign:</span>
 https://YOUR_SIMULATION_DOMAIN/?rid=<span class="op">{{</span>.RId<span class="op">}}</span>
@@ -929,17 +935,17 @@ https://YOUR_SIMULATION_DOMAIN/?rid=<span class="nm">BoziZZb</span></code></pre>
 </div>
 
 <!-- GOPHISH -->
-<div id="gophish" style="background: var(--darkbg);">
+<div id="gophish" style="background: var(--offwhite);">
   <div class="section section-dark">
-    <div class="section-label" style="color: var(--s-geklikt);">
+    <div class="section-label" style="color: var(--s-geklikt); /* #b8001f */">
       <div class="dot" style="background: var(--s-geklikt);"></div>
       GoPhish
     </div>
-    <h2 style="color: var(--white);"><span>GoPhish integration</span></h2>
+    <h2 style="color: var(--text);"><span>GoPhish integration</span></h2>
     <p><span>GoPhish is an open source phishing simulation platform. It handles email delivery, RID generation and basic click tracking. Via the REST API I retrieve all campaign results for processing to Sentinel.</span></p>
 
-    <div class="info-box warning" style="background: rgba(227,70,138,0.08); border-color: var(--s-geklikt);">
-      <div class="info-box-title" style="color: var(--s-geklikt);"><span>🔑 GoPhish API authentication</span></div>
+    <div class="info-box warning" style="background: rgba(227,70,138,0.08); border-color: var(--s-geklikt); /* #b8001f */">
+      <div class="info-box-title" style="color: var(--s-geklikt); /* #b8001f */"><span>🔑 GoPhish API authentication</span></div>
       <p><span>GoPhish expects the API key as a query parameter, not as an Authorization header. Keep this in mind when building integrations.</span></p>
     </div>
 
@@ -967,7 +973,7 @@ resp = requests.<span class="fn">get</span>(
     <p><span>The heart of the solution is a Python script that runs every hour on the GoPhish server as a cron job. It combines GoPhish campaign data with Azure AppServiceHTTPLogs and pushes everything to a custom table in Microsoft Sentinel.</span></p>
 
     <h3><span>Python sync script</span></h3>
-    <p>Het script draait elk uur en voert de volgende stappen uit:</p>
+    <p>The script runs every hour and executes the following steps:</p>
 
     <pre><code class="code-label">Python — sentinel.py</code><span class="kw">import</span> json, logging, requests
 <span class="kw">from</span> datetime <span class="kw">import</span> datetime, timezone, timedelta
@@ -999,7 +1005,7 @@ resp = requests.<span class="fn">get</span>(
     <h3><span>Required Azure permissions</span></h3>
     <table class="tracking-table">
       <tr><th>Rol</th><th>Scope</th><th>Doel</th></tr>
-      <tr><td><span class="badge" style="background: var(--s-verzonden);">Monitoring Metrics Publisher</span></td><td>Data Collection Rule</td><td>Data schrijven naar GoPhish_CL</td></tr>
+      <tr><td><span class="badge" style="background: var(--orange);">Monitoring Metrics Publisher</span></td><td>Data Collection Rule</td><td>Data schrijven naar GoPhish_CL</td></tr>
       <tr><td><span class="badge" style="background: var(--s-clickfix);">Log Analytics Reader</span></td><td>Log Analytics Workspace</td><td>Sentinel queries uitvoeren</td></tr>
     </table>
 
@@ -1011,7 +1017,7 @@ resp = requests.<span class="fn">get</span>(
       <tr><td><code>Email</code></td><td>string</td><td>E-mailadres</td></tr>
       <tr><td><code>ClickedLink</code></td><td>bool</td><td>Link geklikt (GoPhish)</td></tr>
       <tr><td><code>ExecutedClickFix</code></td><td>bool</td><td>Win+R uitgevoerd (Azure logs)</td></tr>
-      <tr><td><code>CampaignName</code></td><td>string</td><td>Naam van de campaign</td></tr>
+      <tr><td><code>CampaignName</code></td><td>string</td><td>Name of the campaign</td></tr>
     </table>
   </div>
 </div>
@@ -1024,7 +1030,7 @@ resp = requests.<span class="fn">get</span>(
       KQL & Dashboard
     </div>
     <h2><span>GoPhishEnriched — the KQL function</span></h2>
-    <p><span>De slimste onderdeel van de oplossing is de <code>The smartest part of the solution is the <code>GoPhishEnriched</code> KQL function in Sentinel. This combines GoPhish_CL with live AppServiceHTTPLogs and automatically deduplicates so each user only appears once — even if the Python script has run multiple times.</code> KQL functie in Sentinel. Deze combineert GoPhish_CL met live AppServiceHTTPLogs en dedupliceert automatisch zodat elke gebruiker maar één keer voorkomt — ook al heeft het Python script meerdere keren gedraaid.</span></p>
+    <p><span>The smartest part of the solution is the <code>The smartest part of the solution is the <code>GoPhishEnriched</code> KQL function in Sentinel. This combines GoPhish_CL with live AppServiceHTTPLogs and automatically deduplicates so each user only appears once — even if the Python script has run multiple times.</code> KQL functie in Sentinel. Deze combineert GoPhish_CL met live AppServiceHTTPLogs en dedupliceert automatisch zodat elke gebruiker maar één keer voorkomt — ook al heeft het Python script meerdere keren gedraaid.</span></p>
 
     <div class="kql-block">
       <div class="kql-title">
@@ -1079,7 +1085,7 @@ LatestGoPhish
 
     <div class="info-box success">
       <div class="info-box-title" style="color: var(--s-clickfix);"><span>✓ Scanner protection</span></div>
-      <p><span>De <code>The <code>ValidRIDs</code> lookup and regex filter <code>^[A-Za-z0-9]{5,10}$</code> completely block XSS payloads, SSTI injection attempts and bot traffic. Only real GoPhish recipients count in the results.</code> lookup en regex filter <code>^[A-Za-z0-9]{5,10}$</code> blokkeren XSS payloads, SSTI injection pogingen en botverkeer volledig. Alleen echte GoPhish ontvangers tellen mee in de resultaten.</span></p>
+      <p><span>The <code>The <code>ValidRIDs</code> lookup and regex filter <code>^[A-Za-z0-9]{5,10}$</code> completely block XSS payloads, SSTI injection attempts and bot traffic. Only real GoPhish recipients count in the results.</code> lookup en regex filter <code>^[A-Za-z0-9]{5,10}$</code> blokkeren XSS payloads, SSTI injection pogingen en botverkeer volledig. Alleen echte GoPhish ontvangers tellen mee in de resultaten.</span></p>
     </div>
 
     <h3><span>Useful queries</span></h3>
@@ -1110,22 +1116,22 @@ LatestGoPhish
 </div>
 
 <!-- RESULTATEN -->
-<div id="resultaten" style="background: var(--darkbg);">
+<div id="resultaten" style="background: var(--offwhite);">
   <div class="section-full section-dark">
     <div class="section-label" style="color: var(--s-winr);"><div class="dot" style="background: var(--s-winr);"></div><span>Results</span></div>
-    <h2 style="color: var(--white); max-width: 780px; margin: 0 auto 20px;"><span>What did the first campaign reveal?</span></h2>
+    <h2 style="color: var(--text); max-width: 780px; margin: 0 auto 20px;"><span>What did the first campaign reveal?</span></h2>
     <p style="max-width: 780px; margin: 0 auto 40px;"><span>The figures below are fictional example data to illustrate what the Sentinel dashboard looks like after a real campaign.</span></p>
 
     <div class="stat-grid" style="max-width: 900px; margin: 0 auto 48px;">
       <div class="stat-card" style="border-color: var(--s-verzonden);">
         <div class="stat-value" style="color: var(--s-verzonden);">142</div>
         <div class="stat-label"><span>Emails sent</span></div>
-        <div class="stat-pct" style="color: var(--gray);"><span>Total recipients</span></div>
+        <div class="stat-pct" style="color: #4a4540;"><span>Total recipients</span></div>
       </div>
-      <div class="stat-card" style="border-color: var(--s-geklikt);">
-        <div class="stat-value" style="color: var(--s-geklikt);">89</div>
+      <div class="stat-card" style="border-color: var(--s-geklikt); /* #b8001f */">
+        <div class="stat-value" style="color: var(--s-geklikt); /* #b8001f */">89</div>
         <div class="stat-label"><span>Link clicked</span></div>
-        <div class="stat-pct" style="color: var(--s-geklikt);"><span>63% of sent</span></div>
+        <div class="stat-pct" style="color: var(--s-geklikt); /* #b8001f */"><span>63% of sent</span></div>
       </div>
       <div class="stat-card" style="border-color: var(--s-clickfix);">
         <div class="stat-value" style="color: var(--s-clickfix);">61</div>
@@ -1139,7 +1145,7 @@ LatestGoPhish
       </div>
     </div>
 
-    <p style="max-width: 780px; margin: 0 auto 20px; color: #E2E8F0;">Wat deze cijfers duidelijk maken: <span><strong style="color: var(--white);"><strong style=&quot;color: var(--white);&quot;>nearly 1 in 4 employees</strong> actually executed a command that in a real attack would have led to a compromise. These are the users that deserve extra attention.</strong> voerde daadwerkelijk een commando uit dat in een echte aanval tot een compromittering had geleid. Dit zijn de gebruikers die extra aandacht verdienen.</span></p>
+    <p style="max-width: 780px; margin: 0 auto 20px; color: var(--text);">Wat deze cijfers duidelijk maken: <span><strong style="color: var(--text);"><strong style=&quot;color: var(--text);&quot;>nearly 1 in 4 employees</strong> actually executed a command that in a real attack would have led to a compromise. These are the users that deserve extra attention.</strong> voerde daadwerkelijk een commando uit dat in een echte aanval tot een compromittering had geleid. Dit zijn de gebruikers die extra aandacht verdienen.</span></p>
 
     
     <!-- Sentinel Dashboard Mockup -->
@@ -1147,8 +1153,8 @@ LatestGoPhish
 
       <!-- Title bar -->
       <div style="background: #141820; padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
-        <div style="font-size: 13px; font-weight: 600; color: #e2e8f0;">ClickFix Simulatie Dashboard</div>
-        <div style="font-size: 11px; color: #475569; margin-left: auto;">⭐ Opgeslagen Workbook · Microsoft Sentinel</div>
+        <div style="font-size: 13px; font-weight: 600; color: var(--text);">ClickFix Simulatie Dashboard</div>
+        <div style="font-size: 11px; color: #2e2c29; margin-left: auto;">⭐ Opgeslagen Workbook · Microsoft Sentinel</div>
       </div>
 
       <!-- Filters bar -->
@@ -1215,7 +1221,7 @@ LatestGoPhish
           <div style="background: #141820; border-radius: 8px; padding: 20px;">
             <div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">Verdeling uitkomsten</div>
             <svg viewBox="0 0 220 195" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
-              <!-- Donut chart: with gaps between segments, centered at 92,88 -->
+              <!-- Donut chart -->
               <!-- Niet geklikt 37% -->
               <path d="M 91.134,25.01 A 65,65 0 0,1 138.152,133.662 L 121.114,118.212 A 42,42 0 0,0 90.733,48.006 Z" fill="#6E77C4"/>
               <!-- Geklikt 21.5% -->
@@ -1244,21 +1250,21 @@ LatestGoPhish
         <!-- KPI tiles -->
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;">
           <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #6E77C4;">
-            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">1. Verzonden</div>
+            <div style="font-size: 10px; color: #2e2c29; margin-bottom: 4px;">1. Verzonden</div>
             <div style="font-size: 28px; font-weight: 700; color: #6E77C4; line-height: 1;">178</div>
           </div>
           <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #E3468A;">
-            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">2. Link geklikt</div>
+            <div style="font-size: 10px; color: #2e2c29; margin-bottom: 4px;">2. Link geklikt</div>
             <div style="font-size: 28px; font-weight: 700; color: #E3468A; line-height: 1;">112</div>
             <div style="font-size: 10px; color: #64748b; margin-top: 2px;">63% van verzonden</div>
           </div>
           <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #00B294;">
-            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">3. ClickFix</div>
+            <div style="font-size: 10px; color: #2e2c29; margin-bottom: 4px;">3. ClickFix</div>
             <div style="font-size: 28px; font-weight: 700; color: #00B294; line-height: 1;">74</div>
             <div style="font-size: 10px; color: #64748b; margin-top: 2px;">42% van verzonden</div>
           </div>
           <div style="background: #141820; border-radius: 6px; padding: 14px; border-top: 3px solid #9B8EC4;">
-            <div style="font-size: 10px; color: #475569; margin-bottom: 4px;">4. Win+R</div>
+            <div style="font-size: 10px; color: #2e2c29; margin-bottom: 4px;">4. Win+R</div>
             <div style="font-size: 28px; font-weight: 700; color: #9B8EC4; line-height: 1;">43</div>
             <div style="font-size: 10px; color: #64748b; margin-top: 2px;">24% van verzonden</div>
           </div>
@@ -1273,7 +1279,7 @@ LatestGoPhish
         <!-- Campaign table -->
         <div style="background: #141820; border-radius: 8px; overflow: hidden;">
           <div style="padding: 10px 16px; border-bottom: 1px solid #1e2535;">
-            <div style="background: #1a1f2e; border: 1px solid #334155; border-radius: 4px; padding: 5px 10px; font-size: 11px; color: #475569; display: inline-flex; align-items: center; gap: 6px;">
+            <div style="background: #1a1f2e; border: 1px solid #334155; border-radius: 4px; padding: 5px 10px; font-size: 11px; color: #2e2c29; display: inline-flex; align-items: center; gap: 6px;">
               🔍 Search
             </div>
           </div>
@@ -1292,7 +1298,7 @@ LatestGoPhish
             </thead>
             <tbody>
               <tr style="border-bottom: 1px solid #1a1f2e;">
-                <td style="padding: 10px 16px; color: #e2e8f0;">Q1 Awareness</td>
+                <td style="padding: 10px 16px; color: var(--text);">Q1 Awareness</td>
                 <td style="padding: 10px 16px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <div style="width: 60px; height: 6px; background: #1e2535; border-radius: 3px; overflow: hidden;">
@@ -1330,7 +1336,7 @@ LatestGoPhish
                 <td style="padding: 10px 16px; color: #94a3b8;">24.1%</td>
               </tr>
               <tr style="border-bottom: 1px solid #1a1f2e;">
-                <td style="padding: 10px 16px; color: #e2e8f0;">Finance Team</td>
+                <td style="padding: 10px 16px; color: var(--text);">Finance Team</td>
                 <td style="padding: 10px 16px; color: #94a3b8;">66</td>
                 <td style="padding: 10px 16px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
@@ -1347,7 +1353,7 @@ LatestGoPhish
                 <td style="padding: 10px 16px; color: #94a3b8;">24.2%</td>
               </tr>
               <tr>
-                <td style="padding: 10px 16px; color: #e2e8f0;">IT Afdeling</td>
+                <td style="padding: 10px 16px; color: var(--text);">IT Afdeling</td>
                 <td style="padding: 10px 16px; color: #94a3b8;">38</td>
                 <td style="padding: 10px 16px; color: #94a3b8;">18</td>
                 <td style="padding: 10px 16px; color: #94a3b8;">47.4%</td>
@@ -1360,14 +1366,14 @@ LatestGoPhish
           </table>
         </div>
 
-        <div style="text-align: right; padding-top: 10px; font-size: 10px; color: #334155; font-style: italic;">
+        <div style="text-align: right; padding-top: 10px; font-size: 10px; color: var(--text); font-style: italic;">
           * Fictieve voorbeelddata — Microsoft Sentinel Workbook
         </div>
       </div>
     </div>
 <div class="info-box note" style="max-width: 780px; margin: 0 auto; background: rgba(155,142,196,0.1); border-color: var(--s-winr);">
       <div class="info-box-title" style="color: var(--s-winr);"><span>📊 Workbook in Sentinel</span></div>
-      <p style="color: #E2E8F0;"><span>The complete dashboard — including funnel chart, pie chart, timeline and individual results list — is available as an importable Sentinel Workbook JSON file. All data is live and automatically filters out bots and scanners via the ValidRIDs lookup.</span></p>
+      <p style="color: var(--text);"><span>The complete dashboard — including funnel chart, pie chart, timeline and individual results list — is available as an importable Sentinel Workbook JSON file. All data is live and automatically filters out bots and scanners via the ValidRIDs lookup.</span></p>
     </div>
   </div>
 </div>
@@ -1375,7 +1381,7 @@ LatestGoPhish
 <!-- CONCLUSIE -->
 <div id="conclusie">
   <div class="section">
-    <div class="section-label" style="color: var(--s-geklikt);">
+    <div class="section-label" style="color: var(--s-geklikt); /* #b8001f */">
       <div class="dot" style="background: var(--s-geklikt);"></div>
       Conclusie
     </div>
@@ -1394,7 +1400,7 @@ LatestGoPhish
         </ul>
       </div>
       <div class="conclusion-card" style="background: var(--offwhite); border: 1px solid var(--lgray);">
-        <h4 style="color: var(--s-geklikt);"><span>⚠️ Recommendations</span></h4>
+        <h4 style="color: var(--s-geklikt); /* #b8001f */"><span>⚠️ Recommendations</span></h4>
         <ul>
           <li><span>🏫</span><span>Target follow-up training at the 24% who executed Win+R</span></li>
           <li><span>🔁</span><span>Repeat simulation after 3-6 months</span></li>
@@ -1424,7 +1430,7 @@ LatestGoPhish
 </main>
 
 <footer>
-  <p>© 2026 Security Awareness Blog — <a href="https://github.com/Jeroenvdbroek/gophish-clickfix">GitHub repository — Jeroen van der Broek</a> — <span>Free to share — see GitHub for all files</span></p>
+  <p>© 2026 Security Awareness Blog — <a href="https://github.com/Jeroenvdbroek/gophish-clickfix">GitHub repository — J. van der Broek</a> — <span>Free to share — see GitHub for all files</span></p>
   <p style="margin-top: 8px;"><span>Built with GoPhish, Azure App Service, Microsoft Sentinel and lots of coffee ☕</span></p>
 </footer>
 
